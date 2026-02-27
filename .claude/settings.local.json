@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(rustc:*)",
+      "Bash(pnpm create:*)",
+      "Bash(pnpm:*)",
+      "Bash(cargo:*)",
+      "Bash(vue:*)",
+      "Bash(reg query:*)",
+      "Bash(powershell:*)",
+      "Bash(npm create:*)",
+      "Bash(taskkill /F /IM \"app.exe\")",
+      "Bash(netstat -ano)",
+      "Bash(xargs taskkill /F /PID)",
+      "Bash(findstr \"1420\")",
+      "Bash(xargs -I {} taskkill /F /PID {})",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)"
+    ]
+  }
+}
