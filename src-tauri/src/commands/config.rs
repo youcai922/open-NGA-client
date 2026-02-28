@@ -27,16 +27,24 @@ pub struct SetCurrentForumRequest {
 /// 获取 Cookie
 #[tauri::command]
 pub async fn get_cookie(app_handle: AppHandle) -> Result<String, String> {
+    log::info!("Getting cookie from config...");
     let config = read_config(&app_handle)?;
+    log::info!("Cookie retrieved, length: {}", config.nga_cookie.len());
     Ok(config.nga_cookie)
 }
 
 /// 设置 Cookie
 #[tauri::command]
 pub async fn set_cookie(app_handle: AppHandle, request: SetCookieRequest) -> Result<(), String> {
+    log::info!("Setting cookie, length: {}", request.cookie.len());
+
     let mut config = read_config(&app_handle)?;
-    config.nga_cookie = request.cookie;
+    config.nga_cookie = request.cookie.clone();
+
+    log::info!("Cookie set in config, saving...");
     save_config(&app_handle, &config)?;
+
+    log::info!("Cookie saved successfully");
     Ok(())
 }
 

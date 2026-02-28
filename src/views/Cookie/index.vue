@@ -4,14 +4,45 @@
       <h2 class="text-lg font-semibold">Cookie 设置</h2>
     </div>
     <div class="cookie-content flex-1 overflow-auto p-6">
+      <!-- 快捷登录方式 -->
+      <div v-if="!cookieStore.hasCookie()" class="mb-6">
+        <el-card shadow="hover">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="i-carbon-link text-blue-500 text-xl"></span>
+                <span class="font-semibold">快捷方式</span>
+              </div>
+              <el-button type="primary" @click="openLoginPage" size="small">
+                <span class="i-carbon-launch mr-1"></span>
+                打开登录页
+              </el-button>
+            </div>
+          </template>
+
+          <div class="text-sm bg-gray-50 p-3 rounded">
+            <p class="mb-2"><strong>步骤：</strong></p>
+            <ol class="list-decimal list-inside space-y-1 text-xs text-gray-600">
+              <li>点击上方按钮在浏览器中打开 NGA 论坛</li>
+              <li>登录您的账号</li>
+              <li>按 <kbd class="px-1 py-0.5 bg-gray-200 rounded">F12</kbd> 打开开发者工具</li>
+              <li>找到 Cookies → bbs.nga.cn</li>
+              <li>复制 <code class="bg-gray-200 px-1 rounded">ngaPassportUid</code> 和 <code class="bg-gray-200 px-1 rounded">ngaPassportKey</code> 的值</li>
+              <li>粘贴到下方输入框，格式：<code class="bg-gray-200 px-1 rounded text-xs">ngaPassportUid=xxx; ngaPassportKey=yyy</code></li>
+            </ol>
+          </div>
+        </el-card>
+      </div>
+
+      <!-- 原有的 Cookie 设置 -->
       <el-alert
-        title="如何获取 Cookie"
+        title="手动获取 Cookie"
         type="info"
         :closable="false"
-        class="mb-6"
+        class="cookie-alert"
       >
         <template #default>
-          <ol class="list-decimal list-inside space-y-2 text-sm">
+          <ol class="list-decimal list-inside space-y-2 text-xs">
             <li>在浏览器中登录 NGA 论坛</li>
             <li>按 F12 打开开发者工具</li>
             <li>切换到 Application / 存储 标签</li>
@@ -27,15 +58,22 @@
             v-model="form.cookie"
             type="textarea"
             :rows="8"
+            :disabled="cookieStore.hasCookie()"
             placeholder="粘贴你的 NGA Cookie..."
           />
         </el-form-item>
 
         <el-form-item>
           <el-space>
-            <el-button type="primary" @click="saveCookie">保存 Cookie</el-button>
-            <el-button @click="clearCookie">清除 Cookie</el-button>
-            <el-button @click="testCookie">测试连接</el-button>
+            <el-button v-if="!cookieStore.hasCookie()" type="primary" @click="saveCookie">
+              保存 Cookie
+            </el-button>
+            <el-button type="success" @click="testCookie">
+              测试连接
+            </el-button>
+            <el-button v-if="cookieStore.hasCookie()" type="danger" @click="clearCookie">
+              清除 Cookie
+            </el-button>
           </el-space>
         </el-form-item>
 
@@ -93,6 +131,19 @@ onMounted(async () => {
   form.cookie = cookieStore.cookie
 })
 
+// 打开登录页
+const openLoginPage = () => {
+  const url = 'https://bbs.nga.cn/'
+  const link = document.createElement('a')
+  link.href = url
+  link.target = '_blank'
+  link.style.display = 'none'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  ElMessage.success('已在浏览器中打开 NGA 论坛，请登录后返回此页面粘贴 Cookie')
+}
+
 const saveCookie = async () => {
   if (!form.cookie.trim()) {
     ElMessage.warning('请输入 Cookie')
@@ -100,7 +151,7 @@ const saveCookie = async () => {
   }
   try {
     await cookieStore.setCookie(form.cookie)
-    clearCookieCache() // 清除 nga.ts 中的缓存
+    clearCookieCache()
     addLog(`Cookie 已保存到配置文件，长度: ${form.cookie.length}`)
     ElMessage.success('Cookie 已保存')
   } catch (error: any) {
@@ -111,7 +162,7 @@ const saveCookie = async () => {
 const clearCookie = async () => {
   try {
     await cookieStore.clearCookie()
-    clearCookieCache() // 清除 nga.ts 中的缓存
+    clearCookieCache()
     form.cookie = ''
     testResult.value = ''
     requestLogs.value = []
@@ -198,6 +249,14 @@ const testCookie = async () => {
   background: #f5f5f5;
 }
 
+.cookie-alert {
+  margin-bottom: 16px;
+}
+
+.cookie-alert :deep(.el-alert__title) {
+  font-size: 13px;
+}
+
 .test-result pre {
   max-height: 300px;
 }
@@ -214,5 +273,10 @@ const testCookie = async () => {
 
 .log-entry:last-child {
   border-bottom: none;
+}
+
+kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
 }
 </style>

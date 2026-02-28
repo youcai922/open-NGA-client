@@ -12,9 +12,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/Forum/index.vue')
   },
   {
-    path: '/thread',
+    path: '/thread/:tid',
     name: 'Thread',
-    component: () => import('@/views/Thread/index.vue')
+    component: () => import('@/views/Thread/index.vue'),
+    props: true
   },
   {
     path: '/post',

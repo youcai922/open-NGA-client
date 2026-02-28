@@ -1,20 +1,16 @@
 <template>
   <div class="forum-container h-full flex flex-col">
-    <!-- 顶部导航 -->
-    <div class="forum-header h-12 flex items-center justify-between px-4 bg-gray-100 border-b">
-      <h2 class="text-lg font-semibold">论坛</h2>
-    </div>
-
     <!-- 主内容区 -->
     <div class="forum-content flex-1 flex overflow-hidden">
       <!-- 左侧板块列表 -->
       <div class="forum-sidebar w-56 border-r overflow-auto bg-gray-50 flex flex-col">
         <!-- 空状态 -->
-        <div v-if="forumStore.isEmpty && !loading" class="empty-state p-4 text-center flex-1">
-          <p class="text-gray-500 text-sm mb-4">暂无收藏板块</p>
-          <el-button type="primary" size="small" @click="initFromFavorites">
-            从收藏初始化
-          </el-button>
+        <div v-if="forumStore.isEmpty && !loading" class="empty-state flex-1 flex items-center justify-center">
+          <div class="text-center">
+            <span class="i-carbon-forum text-5xl text-gray-300 mb-4 block" />
+            <p class="text-gray-500 text-sm mb-3">暂无收藏板块</p>
+            <p class="text-gray-400 text-xs">添加板块或从收藏导入开始使用</p>
+          </div>
         </div>
 
         <!-- 板块列表 -->
@@ -41,19 +37,33 @@
           </div>
         </div>
 
-        <!-- 底部添加按钮 -->
-        <div class="sidebar-footer p-3 border-t">
-          <el-button size="small" class="w-full" @click="showAddDialog = true">
-            <template #icon>
-              <span class="i-carbon-add" />
-            </template>
-            添加板块
-          </el-button>
+        <!-- 底部操作按钮 -->
+        <div class="sidebar-footer p-3 border-t bg-white">
+          <div class="flex gap-2">
+            <el-button
+              size="small"
+              class="flex-1 !align-middle"
+              @click="showAddDialog = true"
+            >
+              <span class="i-carbon-add align-middle mr-1" />
+              <span>添加板块</span>
+            </el-button>
+            <el-button
+              size="small"
+              type="primary"
+              class="flex-1 !align-middle"
+              :loading="loading"
+              @click="initFromFavorites"
+            >
+              <span class="i-carbon-download align-middle mr-1" />
+              <span>从收藏导入</span>
+            </el-button>
+          </div>
         </div>
       </div>
 
       <!-- 右侧主题列表 -->
-      <div class="forum-main flex-1 overflow-auto">
+      <div class="forum-main flex-1 overflow-auto" ref="mainContainerRef">
         <!-- 未选中板块 -->
         <div v-if="!forumStore.currentForum" class="empty-forum flex items-center justify-center h-full">
           <div class="text-center text-gray-400">
@@ -63,43 +73,52 @@
         </div>
 
         <!-- 主题列表 -->
-        <div v-else class="thread-list p-4">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-semibold">{{ forumStore.currentForum.name }}</h3>
-            <el-pagination
-              v-model:current-page="currentPage"
-              :page-size="20"
-              :total="totalThreads"
-              layout="prev, pager, next"
-              small
-              @current-change="loadThreads"
-            />
+        <div v-else class="thread-list h-full flex flex-col">
+          <!-- 顶部工具栏 -->
+          <div class="thread-header px-4 py-3 border-b bg-white sticky top-0 z-10 flex items-center justify-between">
+            <div class="flex-1"></div>
+            <el-button type="primary" size="small" @click="goHome">
+              返回首页
+            </el-button>
           </div>
 
-          <!-- 加载中 -->
-          <div v-if="loadingThreads" class="flex justify-center py-8">
-            <el-icon class="is-loading"><span class="i-carbon-circle-notch text-2xl" /></el-icon>
-          </div>
+          <!-- 主题列表容器 -->
+          <div class="thread-items p-4" @scroll="handleScroll">
+            <!-- 加载中（首次） -->
+            <div v-if="loadingThreads && threads.length === 0" class="flex justify-center py-8">
+              <el-icon class="is-loading"><span class="i-carbon-circle-notch text-2xl" /></el-icon>
+            </div>
 
-          <!-- 主题列表 -->
-          <div v-else-if="threads.length > 0" class="thread-items">
-            <div
-              v-for="thread in threads"
-              :key="thread.tid"
-              class="thread-item p-3 mb-2 bg-white rounded border hover:shadow-sm cursor-pointer transition-shadow"
-              @click="goToThread(thread.tid)"
-            >
-              <div class="thread-subject text-sm font-medium mb-1">{{ thread.subject }}</div>
-              <div class="thread-meta text-xs text-gray-500 flex items-center gap-3">
-                <span>{{ thread.author }}</span>
-                <span>{{ thread.replies }} 回复</span>
+            <!-- 主题列表 -->
+            <div v-else-if="threads.length > 0">
+              <div
+                v-for="thread in threads"
+                :key="thread.tid"
+                class="thread-item p-3 mb-2 bg-white rounded border hover:shadow-sm cursor-pointer transition-shadow"
+                @click="goToThread(thread.tid)"
+              >
+                <div class="thread-subject text-sm font-medium mb-1">{{ thread.subject }}</div>
+                <div class="thread-meta text-xs text-gray-500 flex items-center gap-3">
+                  <span>{{ thread.author }}</span>
+                  <span>{{ thread.replies }} 回复</span>
+                </div>
+              </div>
+
+              <!-- 加载更多 -->
+              <div v-if="loadingMore" class="flex justify-center py-4">
+                <el-icon class="is-loading"><span class="i-carbon-circle-notch text-xl" /></el-icon>
+              </div>
+
+              <!-- 没有更多了 -->
+              <div v-else-if="!hasMore" class="text-center py-4 text-gray-400 text-sm">
+                没有更多主题了
               </div>
             </div>
-          </div>
 
-          <!-- 空状态 -->
-          <div v-else class="text-center py-8 text-gray-400">
-            <p>暂无主题</p>
+            <!-- 空状态 -->
+            <div v-else class="text-center py-8 text-gray-400">
+              <p>暂无主题</p>
+            </div>
           </div>
         </div>
       </div>
@@ -114,7 +133,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForumStore } from '@/stores/forum'
 import { ngaApiRequest } from '@/api/nga'
@@ -127,8 +146,10 @@ const forumStore = useForumStore()
 const showAddDialog = ref(false)
 const loading = ref(false)
 const loadingThreads = ref(false)
+const loadingMore = ref(false)
 const currentPage = ref(1)
-const totalThreads = ref(0)
+const hasMore = ref(true)
+const mainContainerRef = ref<HTMLElement | null>(null)
 
 interface Thread {
   tid: number
@@ -212,29 +233,53 @@ const initFromFavorites = async () => {
 }
 
 // 选择板块
-const selectForum = (forum: any) => {
+const selectForum = async (forum: any) => {
   forumStore.setCurrentForum(forum)
   currentPage.value = 1
-  loadThreads()
+  hasMore.value = true
+  threads.value = []
+  await loadThreads(true)
 }
 
 // 加载主题列表
-const loadThreads = async () => {
+const loadThreads = async (isFirstPage: boolean = false) => {
   if (!forumStore.currentForum) return
 
-  loadingThreads.value = true
+  // 如果是加载更多，使用 loadingMore，否则使用 loadingThreads
+  if (isFirstPage) {
+    loadingThreads.value = true
+  } else {
+    loadingMore.value = true
+  }
+
   try {
+    console.log('=== 加载主题列表 ===')
+    console.log('板块 fid:', forumStore.currentForum.fid)
+    console.log('当前页:', currentPage.value)
+
     const response = await ngaApiRequest.getThreadList({
       fid: forumStore.currentForum.fid.toString(),
       page: currentPage.value.toString(),
     })
 
+    console.log('响应:', response)
+    console.log('success:', response.success)
+    console.log('body length:', response.body?.length || 0)
+
     if (response.success && response.body) {
-      // 解析主题列表 - NGA 返回的是 JavaScript 代码格式
       const data = parseThreadList(response.body)
-      threads.value = data.threads
-      totalThreads.value = data.total
+      console.log('解析结果:', data.threads.length, '个主题')
+
+      if (isFirstPage) {
+        threads.value = data.threads
+      } else {
+        threads.value = [...threads.value, ...data.threads]
+      }
+
+      // 如果返回的主题少于 20 个，说明没有更多了
+      hasMore.value = data.threads.length >= 20
     } else {
+      console.error('获取主题列表失败')
       ElMessage.error('获取主题列表失败')
     }
   } catch (error: any) {
@@ -242,6 +287,29 @@ const loadThreads = async () => {
     ElMessage.error('获取主题列表失败')
   } finally {
     loadingThreads.value = false
+    loadingMore.value = false
+  }
+}
+
+// 加载更多
+const loadMore = async () => {
+  if (loadingMore.value || !hasMore.value) return
+
+  console.log('=== 加载更多 ===')
+  currentPage.value++
+  await loadThreads(false)
+}
+
+// 处理滚动事件
+const handleScroll = (event: Event) => {
+  const target = event.target as HTMLElement
+  const scrollTop = target.scrollTop
+  const scrollHeight = target.scrollHeight
+  const clientHeight = target.clientHeight
+
+  // 当滚动到距离底部 100px 时，加载更多
+  if (scrollHeight - scrollTop - clientHeight < 100) {
+    loadMore()
   }
 }
 
@@ -249,27 +317,58 @@ const loadThreads = async () => {
 const parseThreadList = (body: string): { threads: Thread[], total: number } => {
   const threads: Thread[] = []
 
-  // NGA 返回的是包含 JavaScript 变量的 HTML
-  // 提取 __THREAD_DATA 或类似变量
-  try {
-    // 尝试匹配主题数组
-    const threadDataMatch = body.match(/__THREAD_DATA\s*=\s*(\[[\s\S]*?\]);/)
+  console.log('开始解析主题列表 HTML...')
 
-    if (threadDataMatch) {
-      const threadArray = JSON.parse(threadDataMatch[1])
-      for (const item of threadArray) {
+  try {
+    // 使用 DOMParser 解析 HTML
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(body, 'text/html')
+
+    // 查找所有 topicrow 元素
+    const topicRows = doc.querySelectorAll('.topicrow')
+    console.log(`找到 ${topicRows.length} 个 topicrow 元素`)
+
+    // 跳过第一个（通常是表头）
+    for (let i = 1; i < topicRows.length; i++) {
+      const row = topicRows[i] as Element
+
+      // 查找主题链接
+      const topicLink = row.querySelector('a.topic')
+      if (!topicLink) continue
+
+      // 获取 href 并提取 tid
+      const href = topicLink.getAttribute('href') || ''
+      const tidMatch = href.match(/tid=([^&]+)/)
+      const tid = tidMatch ? parseInt(tidMatch[1]) : 0
+
+      // 获取标题
+      const subject = topicLink.textContent?.trim() || ''
+
+      // 查找作者和其他信息
+      const authorElement = row.querySelector('.author')
+      const author = authorElement?.textContent?.trim() || ''
+
+      // 查找回复数
+      const repliesElement = row.querySelector('.replies')
+      const repliesText = repliesElement?.textContent?.trim() || '0'
+      const replies = parseInt(repliesText) || 0
+
+      if (tid && subject) {
         threads.push({
-          tid: item.tid || item.id || 0,
-          subject: item.subject || item.title || '',
-          author: item.author || item.username || '',
-          replies: item.replies || 0,
-          last_post: item.last_post || 0,
+          tid,
+          subject,
+          author,
+          replies,
+          last_post: 0,
         })
+        console.log(`解析主题 ${i}: tid=${tid}, title=${subject}`)
       }
     }
   } catch (error) {
     console.error('解析主题列表失败:', error)
   }
+
+  console.log(`总共解析出 ${threads.length} 个主题`)
 
   return { threads, total: threads.length || 100 }
 }
@@ -292,6 +391,11 @@ const goToThread = (tid: number) => {
   router.push({ name: 'Thread', params: { tid } })
 }
 
+// 返回首页
+const goHome = () => {
+  router.push('/')
+}
+
 // 板块添加后的回调
 const onForumAdded = () => {
   ElMessage.success('添加成功')
@@ -304,6 +408,20 @@ onMounted(async () => {
     // 如果有当前选中的板块，使用它；否则使用第一个
     const forumToSelect = forumStore.currentForum || forumStore.myForums[0]
     await selectForum(forumToSelect)
+  }
+
+  // 添加滚动监听
+  const scrollContainer = mainContainerRef.value?.querySelector('.thread-items')
+  if (scrollContainer) {
+    scrollContainer.addEventListener('scroll', handleScroll)
+  }
+})
+
+// 组件卸载时移除滚动监听
+onUnmounted(() => {
+  const scrollContainer = mainContainerRef.value?.querySelector('.thread-items')
+  if (scrollContainer) {
+    scrollContainer.removeEventListener('scroll', handleScroll)
   }
 })
 </script>
@@ -330,7 +448,17 @@ onMounted(async () => {
   opacity: 1;
 }
 
+.thread-header {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
 .thread-item:hover {
   border-color: #3b82f6;
+}
+
+.thread-items {
+  height: 100%;
+  overflow-y: auto;
 }
 </style>

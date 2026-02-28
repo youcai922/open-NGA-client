@@ -6,9 +6,13 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_http::init())
+    .plugin(tauri_plugin_opener::init())
     .invoke_handler(tauri::generate_handler![
         commands::greet,
         commands::nga_http_request,
+        commands::proxy_image,
+        commands::open_url,
+        commands::open_login_window,
         // 配置相关命令
         commands::get_cookie,
         commands::set_cookie,

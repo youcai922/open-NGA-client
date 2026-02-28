@@ -58,25 +58,73 @@ pub fn read_config(handle: &tauri::AppHandle) -> Result<AppConfig, String> {
 
     if !path.exists() {
         // 如果文件不存在，返回默认值
+        log::info!("Config file does not exist, using defaults");
         return Ok(AppConfig::default());
     }
 
-    let content = fs::read_to_string(&path)
+    log::info!("Reading config from: {:?}", path);
+
+    // 先读取为字节
+    let bytes = fs::read(&path)
         .map_err(|e| format!("Failed to read config.yml: {}", e))?;
 
-    serde_yaml::from_str(&content)
-        .map_err(|e| format!("Failed to parse config.yml: {}", e))
+    log::info!("Read {} bytes from config file", bytes.len());
+
+    // 尝试 UTF-8 解码
+    let content = String::from_utf8(bytes.clone());
+
+    let content = match content {
+        Ok(s) => {
+            log::info!("Config file is UTF-8 encoded");
+            s
+        }
+        Err(_) => {
+            // UTF-8 失败，尝试 GBK 解码
+            log::warn!("Config file is not UTF-8 encoded, trying GBK...");
+            let (decoded, _, _) = encoding_rs::GBK.decode(&bytes);
+            let converted = decoded.to_string();
+            log::info!("Successfully decoded from GBK");
+            // 保存为 UTF-8，避免下次再转换
+            let _ = fs::write(&path, &converted);
+            converted
+        }
+    };
+
+    // 尝试解析 YAML
+    match serde_yaml::from_str::<AppConfig>(&content) {
+        Ok(config) => {
+            log::info!("Config parsed successfully");
+            Ok(config)
+        }
+        Err(e) => {
+            log::error!("Failed to parse config.yml: {}", e);
+            // 备份损坏的文件
+            let backup_path = path.with_extension("yml.bak");
+            let _ = fs::copy(&path, &backup_path);
+            log::info!("Backed up corrupted config to: {:?}", backup_path);
+            // 删除损坏的配置文件
+            let _ = fs::remove_file(&path);
+            log::warn!("Removed corrupted config file, using defaults");
+            // 返回默认配置
+            Ok(AppConfig::default())
+        }
+    }
 }
 
-/// 保存配置
+/// 保存配置（始终使用 UTF-8）
 pub fn save_config(handle: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> {
     let path = get_config_path(handle)?;
 
     let content = serde_yaml::to_string(config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
 
+    log::info!("Saving config to: {:?}", path);
+    log::info!("Config content length: {} bytes", content.len());
+
+    // 使用 UTF-8 写入
     fs::write(&path, content)
         .map_err(|e| format!("Failed to write config.yml: {}", e))?;
 
+    log::info!("Config saved successfully");
     Ok(())
 }

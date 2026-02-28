@@ -13,10 +13,31 @@ const log = {
     console.log('  Cookie preview:', cookie.substring(0, 50) + '...')
   },
   response: (response: any) => {
-    console.log('[NGA API Response]')
-    console.log('  Success:', response.success)
-    console.log('  Status:', response.status)
-    console.log('  Body length:', response.body?.length || 0)
+    console.log('[NGA API Response Received]')
+    console.log('  Response type:', typeof response)
+    console.log('  Response keys:', response ? Object.keys(response) : 'null')
+    console.log('  Success:', response?.success)
+    console.log('  Status:', response?.status)
+    console.log('  Body length:', response?.body?.length || 0)
+    console.log('  Body preview:', response?.body ? response.body.substring(0, 100) + '...' : 'no body')
+    console.log('  Error:', response?.error)
+  },
+  invokeStart: (command: string, params: any) => {
+    console.log('[NGA API Invoke Start]')
+    console.log('  Command:', command)
+    console.log('  Params:', JSON.stringify(params, null, 2))
+  },
+  invokeEnd: (command: string, result: any) => {
+    console.log('[NGA API Invoke End]')
+    console.log('  Command:', command)
+    console.log('  Result type:', typeof result)
+    console.log('  Result:', result)
+  },
+  invokeError: (command: string, error: any) => {
+    console.error('[NGA API Invoke Error]')
+    console.error('  Command:', command)
+    console.error('  Error:', error)
+    console.error('  Error message:', error?.message || error)
   },
 }
 
@@ -59,16 +80,18 @@ const rustRequest = async (url: string): Promise<any> => {
 
   log.request(url, cookie)
 
-  const response = await invoke('nga_http_request', {
-    request: {
-      url,
-      cookie,
-    },
-  })
+  const params = { url, cookie }
+  log.invokeStart('nga_http_request', params)
 
-  log.response(response)
-
-  return response
+  try {
+    const response = await invoke('nga_http_request', params)
+    log.invokeEnd('nga_http_request', response)
+    log.response(response)
+    return response
+  } catch (error) {
+    log.invokeError('nga_http_request', error)
+    throw error
+  }
 }
 
 // NGA API 接口
@@ -106,6 +129,17 @@ export const ngaApiRequest = {
   postReply: async (_data: any) => {
     // POST 请求暂不实现，需要更新 Rust 端
     throw new Error('POST not implemented yet')
+  },
+
+  // 代理获取图片
+  proxyImage: async (imageUrl: string) => {
+    try {
+      const response = await invoke('proxy_image', { url: imageUrl })
+      return response
+    } catch (error) {
+      console.error('代理图片失败:', error)
+      throw error
+    }
   },
 }
 

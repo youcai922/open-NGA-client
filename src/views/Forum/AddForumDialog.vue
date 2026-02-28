@@ -3,6 +3,7 @@
     v-model="visible"
     title="添加板块"
     width="600px"
+    center
     @close="handleClose"
   >
     <!-- 搜索框 -->
@@ -34,28 +35,30 @@
         <div
           v-for="forum in filteredForums"
           :key="forum.fid"
-          class="forum-list-item px-4 py-3 border-b cursor-pointer hover:bg-blue-50 transition-colors flex items-center justify-between"
-          :class="{ 'opacity-50': isAdded(forum.fid) }"
-          @click="toggleForum(forum)"
+          class="forum-list-item px-4 py-3 border-b flex items-center justify-between"
         >
-          <div class="flex-1">
-            <div class="forum-name text-sm font-medium">{{ forum.name }}</div>
+          <div class="flex-1 min-w-0">
+            <div class="forum-name text-sm font-medium truncate">{{ forum.name }}</div>
             <div v-if="forum.description" class="forum-desc text-xs text-gray-500 truncate">
               {{ forum.description }}
             </div>
           </div>
-          <el-checkbox
-            :model-value="selectedForums.has(forum.fid) || isAdded(forum.fid)"
-            :disabled="isAdded(forum.fid)"
-          />
+          <el-button
+            :icon="isAdded(forum.fid) ? 'i-carbon-star-filled' : 'i-carbon-star'"
+            :type="isAdded(forum.fid) ? 'warning' : 'default'"
+            size="small"
+            text
+            @click="toggleFavorite(forum.fid)"
+          >
+            {{ isAdded(forum.fid) ? '已收藏' : '收藏' }}
+          </el-button>
         </div>
       </div>
     </div>
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleConfirm">确定</el-button>
+        <el-button @click="handleClose">关闭</el-button>
       </span>
     </template>
   </el-dialog>
@@ -89,7 +92,6 @@ const visible = computed({
 
 const searchText = ref('')
 const loading = ref(false)
-const selectedForums = ref<Set<number>>(new Set())
 
 // 过滤后的板块列表
 const filteredForums = computed(() => {
@@ -117,17 +119,17 @@ const loadAllForums = async () => {
 
   loading.value = true
   try {
-    console.log('开始获取板块列表...')
     const response = await ngaApiRequest.getForumList()
-    console.log('bbs_index_data.js 响应:', response.success, 'status:', response.status, 'body length:', response.body?.length)
 
-    if (response.success && response.body) {
-      // 解析返回的 JS 文件，提取板块信息
-      const forums = parseForumList(response.body)
+    if (response.success && response.data && response.data.length > 0) {
+      // 直接使用后端解析好的板块列表
+      const forums: NgaForum[] = response.data.map((item: any) => ({
+        fid: item.fid,
+        name: item.name,
+        description: item.info || item.info_s || '',
+      }))
       forumStore.setAllForums(forums)
-      console.log('最终设置的板块列表:', forums.length)
     } else {
-      console.error('获取板块列表失败:', response)
       ElMessage.error('获取板块列表失败')
     }
   } catch (error: any) {
@@ -138,128 +140,24 @@ const loadAllForums = async () => {
   }
 }
 
-// 解析板块列表 JS 文件
-const parseForumList = (content: string): NgaForum[] => {
-  const forums: NgaForum[] = []
+// 切换收藏状态
+const toggleFavorite = async (fid: number) => {
+  const forum = forumStore.allForums.find(f => f.fid === fid)
+  if (!forum) return
 
-  console.log('bbs_index_data.js 返回长度:', content.length)
-  console.log('内容预览:', content.substring(0, 500))
-
-  try {
-    // 尝试直接解析整个内容为 JSON
-    let data: any
-    try {
-      data = JSON.parse(content)
-      console.log('直接解析 JSON 成功')
-    } catch (e) {
-      // 如果直接解析失败，可能需要提取 __FORUM 变量
-      const forumMatch = content.match(/__FORUM\s*=\s*(\{[\s\S]*?\});/)
-      if (forumMatch) {
-        console.log('找到 __FORUM 变量，尝试解析')
-        // 尝试将 JavaScript 对象转为 JSON
-        let jsonStr = forumMatch[1]
-        // 简单的转换：单引号转双引号
-        jsonStr = jsonStr.replace(/'/g, '"')
-        data = JSON.parse(jsonStr)
-      } else {
-        throw e
-      }
+  if (isAdded(fid)) {
+    // 取消收藏
+    const success = await forumStore.removeForum(fid)
+    if (success) {
+      ElMessage.success(`已取消收藏：${forum.name}`)
     }
-
-    // 从 data.data 中提取板块
-    if (data && data.data) {
-      console.log('找到 data.data，开始解析')
-      parseForumObject(data.data, forums)
-    } else {
-      console.log('直接从根解析')
-      parseForumObject(data, forums)
-    }
-  } catch (error) {
-    console.error('解析板块列表失败:', error)
-  }
-
-  console.log('最终解析到的板块数量:', forums.length)
-  console.log('前20个板块:', forums.slice(0, 20))
-
-  return forums
-}
-
-// 递归解析板块数据对象
-const parseForumObject = (data: any, forums: NgaForum[]) => {
-  if (!data || typeof data !== 'object') return
-
-  for (const key in data) {
-    const value = data[key]
-
-    // 如果是数字键（字符串形式的数字索引），跳过并继续处理值
-    if (/^\d+$/.test(key)) {
-      if (value && typeof value === 'object') {
-        parseForumObject(value, forums)
-      }
-      continue
-    }
-
-    // 如果值是对象且包含 fid，说明是板块
-    if (value && typeof value === 'object') {
-      if (value.fid !== undefined) {
-        const fid = parseInt(value.fid)
-        const name = value.name || value.sticker
-        const info = value.info || value.description || ''
-
-        if (!isNaN(fid) && name && typeof name === 'string') {
-          // 避免重复
-          if (!forums.some(f => f.fid === fid)) {
-            forums.push({
-              fid,
-              name: name.trim(),
-              description: info.trim(),
-            })
-          }
-        }
-      } else {
-        // 递归处理子对象（可能是分类）
-        parseForumObject(value, forums)
-      }
-    }
-  }
-}
-
-// 切换板块选择
-const toggleForum = (forum: NgaForum) => {
-  if (isAdded(forum.fid)) return
-
-  if (selectedForums.value.has(forum.fid)) {
-    selectedForums.value.delete(forum.fid)
   } else {
-    selectedForums.value.add(forum.fid)
-  }
-  // 触发响应式更新
-  selectedForums.value = new Set(selectedForums.value)
-}
-
-// 确认添加
-const handleConfirm = () => {
-  const forumsToAdd = forumStore.allForums.filter(f => selectedForums.value.has(f.fid))
-
-  if (forumsToAdd.length === 0) {
-    ElMessage.warning('请至少选择一个板块')
-    return
-  }
-
-  let addedCount = 0
-  for (const forum of forumsToAdd) {
-    if (forumStore.addForum(forum)) {
-      addedCount++
+    // 添加收藏
+    const success = await forumStore.addForum(forum)
+    if (success) {
+      ElMessage.success(`已收藏：${forum.name}`)
     }
   }
-
-  if (addedCount > 0) {
-    ElMessage.success(`已添加 ${addedCount} 个板块`)
-    emit('added')
-  }
-
-  selectedForums.value.clear()
-  handleClose()
 }
 
 // 关闭对话框
@@ -269,9 +167,9 @@ const handleClose = () => {
 }
 
 // 监听对话框打开，加载板块列表
-watch(() => props.modelValue, (val) => {
+watch(() => props.modelValue, async (val) => {
   if (val) {
-    loadAllForums()
+    await loadAllForums()
   }
 })
 </script>

@@ -16,7 +16,17 @@
       "Bash(findstr \"1420\")",
       "Bash(xargs -I {} taskkill /F /PID {})",
       "Bash(taskkill:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(python:*)",
+      "Bash(curl:*)",
+      "Bash(findstr :1420)",
+      "Bash(findstr LISTENING)",
+      "Bash(tasklist:*)",
+      "Bash(echo HTTP_PROXY=$env:HTTP_PROXY:*)",
+      "Bash(netsh winhttp:*)",
+      "Bash(Get-ChildItem Env::*)",
+      "Bash(env:*)",
+      "Bash(git add:*)"
     ]
   }
 }
