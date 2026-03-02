@@ -85,10 +85,6 @@ const goToLogin = () => {
   router.push('/login')
 }
 
-const goToAbout = () => {
-  router.push('/about')
-}
-
 const openGithub = async () => {
   try {
     await invoke('open_url', { url: 'https://github.com/youcai922/open-NGA-client' })

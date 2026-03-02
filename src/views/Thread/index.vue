@@ -329,10 +329,6 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
           break
         }
 
-        // 获取回复内容
-        const replyContentElement = replyElement.querySelector('.postcontent')
-        const rawContent = replyContentElement?.innerHTML || ''
-
         // 提取作者和时间
         let replyAuthor = '用户'
         let replyTime = serverNow
@@ -405,8 +401,6 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
         }> = []
 
         for (const hotReply of hotReplyElements) {
-          const hotContentElement = hotReply.querySelector('.postcontent')
-
           // 提取 pid
           const hotPid = parseInt(hotReply.id.replace('postcommentcontentandsubject', '')) || 0
 

@@ -3,7 +3,7 @@
  * 将 [s:ac:表情名] 格式的代码转换为 img 标签（使用图片代理）
  */
 
-import { ngaApiRequest } from '@/api/nga'
+import { ngaApiRequest, ProxyImageResponse } from '@/api/nga'
 
 // NGA 表情代码到图片文件名的映射
 const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
@@ -15,7 +15,7 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '中枪': { file: 'ac3' },
   '狂': { file: 'ac4' },
   '黑': { file: 'ac5' },
-  '乖': { file: 'ac6' },
+  '凌乱': { file: 'ac6' },
   '惊': { file: 'ac7' },
   '吓': { file: 'ac8' },
   '吻': { file: 'ac9' },
@@ -23,12 +23,12 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '咦': { file: 'ac11' },
   '汗': { file: 'ac12' },
   '酷': { file: 'ac13' },
-  '羞': { file: 'ac14' },
+  '哭1': { file: 'ac14' },
   '哭笑': { file: 'ac15' },
   '吐': { file: 'ac16' },
   '喘': { file: 'ac17' },
   '喷': { file: 'ac18' },
-  '默': { file: 'ac19' },
+  '嘲笑': { file: 'ac19' },
   '嘲笑1': { file: 'ac20' },
   '疑': { file: 'ac21' },
   '衰': { file: 'ac22' },
@@ -37,10 +37,10 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '冷': { file: 'ac26' },
   '嘘': { file: 'ac27' },
   '倒': { file: 'ac28' },
-  '晕头': { file: 'ac29' },
-  '啊': { file: 'ac30' },
+  '抓狂': { file: 'ac29' },
+  '抠鼻': { file: 'ac30' },
   '鄙视': { file: 'ac31' },
-  '拳头': { file: 'ac32' },
+  '无语': { file: 'ac32' },
   '晕': { file: 'ac33' },
   'OK': { file: 'ac34' },
   '瞎': { file: 'ac35' },
@@ -52,7 +52,7 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '雨': { file: 'ac41' },
   '星星': { file: 'ac42' },
   '闪光': { file: 'ac43' },
-  '心碎': { file: 'ac44' },
+  '黑枪': { file: 'ac44' },
   '礼物': { file: 'ac45' },
   '蛋糕': { file: 'ac46' },
   '熊猫': { file: 'ac47' },
@@ -62,11 +62,15 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '诶嘿': { file: 'a2_05' },
   '那个…': { file: 'a2_08' },
   '有何贵干': { file: 'a2_11' },
+  '病娇': { file: 'a2_12' },
   '大哭': { file: 'a2_15' },
   '哭': { file: 'a2_17' },
   'yes': { file: 'a2_26' },
   'doge': { file: 'a2_27' },
   '自戳双目': { file: 'a2_28' },
+  '不活了': { file: 'a2_33' },
+  '你已经死了': { file: 'a2_45' },
+  '认真': { file: 'a2_48' },
   '干杯': { file: 'a2_54' },
   '干杯2': { file: 'a2_55' },
 
@@ -93,7 +97,7 @@ async function fetchImageViaProxy(imageUrl: string): Promise<string> {
   }
 
   try {
-    const response = await ngaApiRequest.proxyImage(imageUrl)
+    const response: ProxyImageResponse = await ngaApiRequest.proxyImage(imageUrl)
     if (response.success && response.data_url) {
       imageCache.set(imageUrl, response.data_url)
       return response.data_url
@@ -127,7 +131,7 @@ export async function convertNgEmoticonsAsync(content: string): Promise<string> 
   const urlMap = new Map<string, string>() // 原始 URL -> data URL
 
   for (const match of matches) {
-    const [fullMatch, category, emoticonName] = match
+    const [, , emoticonName] = match
     const mapped = NGA_EMOTICON_MAP[emoticonName]
 
     if (mapped) {
@@ -217,7 +221,7 @@ export function parseNgaQuotes(content: string): string {
   // 匹配 [quote]...[/quote] 块
   const quotePattern = /\[quote\]([\s\S]*?)\[\/quote\]/gi
 
-  return content.replace(quotePattern, (match, innerContent) => {
+  return content.replace(quotePattern, (_match: string, innerContent: string) => {
     // 解析引用头信息
     // 格式: [tid=46277635]Topic[/tid] [b]Post by [uid=66691747]法伦施泰尔[/uid] (2026-02-28 11:17):[/b]
     let header = ''
@@ -233,7 +237,6 @@ export function parseNgaQuotes(content: string): string {
     // 提取 uid（用户ID）和时间
     const postByMatch = innerContent.match(/\[b\]Post by\s+\[uid=(\d+)\](.+?)\[\/uid\]\s*\((\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})\):\[\/b\]/i)
     if (postByMatch) {
-      const uid = postByMatch[1]
       const username = postByMatch[2]
       const time = postByMatch[3]
       header = `<div class="nga-quote-header" style="font-size: 0.85em; color: #666; margin-bottom: 8px; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px;">
@@ -258,7 +261,7 @@ export function parseNgaQuotes(content: string): string {
     bodyContent = bodyContent.replace(/\[tid=(\d+)\](.+?)\[\/tid\]/gi, '<span class="nga-topic-link" style="color: #1976d2;">$2</span>')
 
     // 处理 [pid=...]Reply[/pid] 标签（楼层跳转）
-    bodyContent = bodyContent.replace(/\[pid=([\d,]+)\]Reply\[\/pid\]/gi, (match, pidStr) => {
+    bodyContent = bodyContent.replace(/\[pid=([\d,]+)\]Reply\[\/pid\]/gi, (_match: string, pidStr: string) => {
       // 提取第一个 pid（目标回复的 pid）
       const pids = pidStr.split(',')
       const targetPid = pids[0]
@@ -288,7 +291,7 @@ export function parseInlineQuotes(content: string): string {
   // [b]Reply to [pid=...]Reply[/pid] Post by [uid=123]用户名[/uid] (时间)[/b]
   const normalUserPattern = /\[b\]Reply to\s+\[pid=([\d,]+)\]Reply\[\/pid\]\s+Post by\s+\[uid=(\d+)\](.+?)\[\/uid\]\s*\((\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})\)\[\/b\]/gi
 
-  parsed = parsed.replace(normalUserPattern, (match, pidStr, uid, username, time) => {
+  parsed = parsed.replace(normalUserPattern, (_match: string, pidStr: string, _uid: string, username: string, time: string) => {
     const pid = pidStr.split(',')[0]
     return `<div class="nga-inline-quote" style="background: #f0f7ff; border-left: 3px solid #2196f3; padding: 8px 12px; margin: 8px 0; border-radius: 0 4px 4px 0;">
       <span class="nga-inline-quote-link" data-pid="${pid}" style="color: #1976d2; font-size: 0.85em; cursor: pointer; text-decoration: underline; text-decoration-style: dotted;">↗ 回复</span>
@@ -302,7 +305,7 @@ export function parseInlineQuotes(content: string): string {
   // [b]Reply to [pid=...]Reply[/pid] Post by [uid]#anony_xxx[/uid](5楼) (时间)[/b]
   const anonUserPattern = /\[b\]Reply to\s+\[pid=([\d,]+)\]Reply\[\/pid\]\s+Post by\s+\[uid\]#anony_[a-f0-9]+\[\/uid\]\((\d+)楼\)\s*\((\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})\)\[\/b\]/gi
 
-  parsed = parsed.replace(anonUserPattern, (match, pidStr, floor, time) => {
+  parsed = parsed.replace(anonUserPattern, (_match: string, pidStr: string, floor: string, time: string) => {
     const pid = pidStr.split(',')[0]
     return `<div class="nga-inline-quote" style="background: #f0f7ff; border-left: 3px solid #2196f3; padding: 8px 12px; margin: 8px 0; border-radius: 0 4px 4px 0;">
       <span class="nga-inline-quote-link" data-pid="${pid}" style="color: #1976d2; font-size: 0.85em; cursor: pointer; text-decoration: underline; text-decoration-style: dotted;">↗ 回复</span>
@@ -358,7 +361,7 @@ async function parseNgaImagesAsync(content: string): Promise<string> {
   await Promise.all(imagePromises)
 
   // 替换内容中的图片标签
-  return content.replace(imgPattern, (match, imagePath) => {
+  return content.replace(imgPattern, (_match: string, imagePath: string) => {
     let fullUrl = imagePath
 
     // 如果是相对路径，转换为完整 URL
@@ -383,15 +386,15 @@ export function parseBBCode(content: string): string {
   let parsed = content
 
   // 处理 [size=数值]...[/size] 字体大小
-  parsed = parsed.replace(/\[size=(\d+)%\]([\s\S]*?)\[\/size\]/gi, (match, size, inner) => {
+  parsed = parsed.replace(/\[size=(\d+)%\]([\s\S]*?)\[\/size\]/gi, (_match: string, size: string, inner: string) => {
     const fontSize = Math.min(Math.max(parseInt(size), 80), 200) / 100
     return `<span style="font-size: ${fontSize}em;">${inner}</span>`
   })
 
   // 处理 [list] [*]... [/list] 列表
-  parsed = parsed.replace(/\[list\]([\s\S]*?)\[\/list\]/gi, (match, inner) => {
-    const items = inner.split(/\[\*\]/g).filter(s => s.trim().length > 0)
-    const listItems = items.map(item => `<li style="margin: 4px 0;">${item}</li>`).join('')
+  parsed = parsed.replace(/\[list\]([\s\S]*?)\[\/list\]/gi, (_match: string, inner: string) => {
+    const items = inner.split(/\[\*\]/g).filter((s: string) => s.trim().length > 0)
+    const listItems = items.map((item: string) => `<li style="margin: 4px 0;">${item}</li>`).join('')
     return `<ul style="margin: 8px 0; padding-left: 20px; list-style-type: disc;">${listItems}</ul>`
   })
 
@@ -399,7 +402,7 @@ export function parseBBCode(content: string): string {
   parsed = parsed.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>')
 
   // 处理 [color=颜色]...[/color] 颜色
-  parsed = parsed.replace(/\[color=([^\]]+)\]([\s\S]*?)\[\/color\]/gi, (match, color, inner) => {
+  parsed = parsed.replace(/\[color=([^\]]+)\]([\s\S]*?)\[\/color\]/gi, (_match: string, color: string, inner: string) => {
     return `<span style="color: ${color};">${inner}</span>`
   })
 

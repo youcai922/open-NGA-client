@@ -2,6 +2,21 @@ import { invoke } from '@tauri-apps/api/core'
 import { ngaConfig } from '@/config/env'
 import { cookieApi } from '.'
 
+// API 响应类型定义
+export interface NgaApiResponse {
+  success: boolean
+  status?: number
+  body?: string
+  error?: string
+}
+
+// 代理图片响应类型
+export interface ProxyImageResponse {
+  success: boolean
+  data_url?: string
+  error?: string
+}
+
 // 日志输出
 const log = {
   info: (...args: any[]) => console.log('[NGA API Info]', ...args),
@@ -132,9 +147,9 @@ export const ngaApiRequest = {
   },
 
   // 代理获取图片
-  proxyImage: async (imageUrl: string) => {
+  proxyImage: async (imageUrl: string): Promise<ProxyImageResponse> => {
     try {
-      const response = await invoke('proxy_image', { url: imageUrl })
+      const response = await invoke('proxy_image', { url: imageUrl }) as ProxyImageResponse
       return response
     } catch (error) {
       console.error('代理图片失败:', error)

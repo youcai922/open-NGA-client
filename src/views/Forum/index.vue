@@ -123,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForumStore } from '@/stores/forum'
 import { ngaApiRequest } from '@/api/nga'
@@ -150,77 +150,6 @@ interface Thread {
 }
 
 const threads = ref<Thread[]>([])
-
-// 从收藏初始化
-const initFromFavorites = async () => {
-  loading.value = true
-  try {
-    const response = await ngaApiRequest.getFavoriteForums()
-    if (response.success && response.body) {
-      // NGA 返回的是 HTML，包含 script_muti_get_var_store 变量
-      let data: any = null
-
-      // 尝试解析 script_muti_get_var_store
-      const match = response.body.match(/window\.script_muti_get_var_store\s*=\s*(\{[^}]+\})/)
-      if (match) {
-        try {
-          data = JSON.parse(match[1])
-        } catch {
-          // 解析失败，尝试其他方式
-        }
-      }
-
-      // 如果上面没找到，尝试直接解析 JSON
-      if (!data) {
-        try {
-          data = JSON.parse(response.body)
-        } catch {
-          // 忽略解析错误
-        }
-      }
-
-      console.log('解析后的数据:', data)
-
-      // 检查数据格式
-      if (data && data.data) {
-        // NGA 返回格式可能是 {data: {"0": ""}} 表示空
-        // 或者 {data: [{"fid": 1, "name": "xxx"}]}
-        const forumsData = data.data
-
-        // 检查是否是空数据 {"0": ""}
-        if (typeof forumsData === 'object' && Object.keys(forumsData).length === 1 && forumsData['0'] === '') {
-          ElMessage.warning('收藏板块为空，请手动添加板块')
-          showAddDialog.value = true
-        } else if (Array.isArray(forumsData) && forumsData.length > 0) {
-          // 正常的数组数据
-          let addedCount = 0
-          for (const item of forumsData) {
-            const success = await forumStore.addForum({
-              fid: item.fid || item.id,
-              name: item.name || item.title || item.sticker || '',
-              description: item.description || '',
-            })
-            if (success) addedCount++
-          }
-          ElMessage.success(`已导入 ${addedCount} 个收藏板块`)
-        } else {
-          ElMessage.warning('未找到收藏板块数据，请手动添加')
-          showAddDialog.value = true
-        }
-      } else {
-        ElMessage.warning('返回数据格式异常，请手动添加板块')
-        showAddDialog.value = true
-      }
-    } else {
-      ElMessage.error('获取收藏板块失败')
-    }
-  } catch (error: any) {
-    console.error('获取收藏板块失败:', error)
-    ElMessage.error('获取收藏板块失败: ' + (error.message || '未知错误'))
-  } finally {
-    loading.value = false
-  }
-}
 
 // 选择板块
 const selectForum = async (forum: any) => {

@@ -74,9 +74,24 @@ pnpm tauri dev
 
 
 
+## ☕ 支持作者
+
+如果这个项目对你有帮助，欢迎请我喝杯咖啡~
+
+### 感谢支持
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/youcai922/open-NGA-client/main/public/qrcode.png" alt="收款码" width="300">
+</div>
+
+你的支持是我持续开发的动力！
+
+---
+
 ## 🔐 隐私说明
 
 本应用仅为 NGA 论坛的第三方客户端，所有数据均直接从 NGA 服务器获取，不收集任何用户信息。
+相关Cookie和收藏板块存储位置为C:\Users\admin\AppData\Roaming\com.openga.client\settings\config.yml，本项目不收集任何信息。
 
 ---
 
