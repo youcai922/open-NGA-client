@@ -74,18 +74,6 @@ pnpm tauri dev
 
 
 
-## ☕ 支持作者
-
-如果这个项目对你有帮助，欢迎请我喝杯咖啡~
-
-### 感谢支持
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/youcai922/open-NGA-client/main/public/qrcode.png" alt="收款码" width="300">
-</div>
-
-你的支持是我持续开发的动力！
-
 ---
 
 ## 🔐 隐私说明
@@ -96,3 +84,16 @@ pnpm tauri dev
 ---
 
 **⚠️ 注意**: 本项目为学习项目，代码质量不够规范，欢迎提出 Issue 和 PR！如有任何商业侵权，请联系删除，感谢。
+
+
+
+## ☕ 支持作者
+
+如果这个项目对你有帮助，欢迎请我喝杯咖啡~，感谢你的支持
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/youcai922/open-NGA-client/main/public/qrcode.png" alt="收款码" width="300">
+</div>
+
+
+你的支持是我持续开发的动力！
