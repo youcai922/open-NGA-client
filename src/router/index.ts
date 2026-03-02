@@ -23,8 +23,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/Post/index.vue')
   },
   {
-    path: '/cookie',
-    name: 'Cookie',
+    path: '/login',
+    name: 'Login',
     component: () => import('@/views/Cookie/index.vue')
   }
 ]

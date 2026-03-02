@@ -3,9 +3,10 @@
     <!-- 顶部工具栏 -->
     <div class="thread-header h-12 flex items-center justify-between px-4 bg-gray-100 border-b flex-shrink-0">
       <div class="flex items-center gap-2">
-        <el-button size="small" @click="goBack">
-          <span class="i-carbon-arrow-left mr-1" />
-          返回
+        <el-button class="icon-btn" @click="goBack" title="返回">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
         </el-button>
         <h2 class="text-base font-medium">帖子详情</h2>
         <div class="flex items-center gap-2">
@@ -17,20 +18,26 @@
             {{ threadUrl }}
           </span>
           <el-button
-            size="small"
+            class="icon-btn"
             type="primary"
             @click="openInBrowser"
             title="在浏览器中打开"
           >
-            <span class="i-carbon-launch mr-1" />
-            浏览器打开
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
           </el-button>
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <el-button size="small" @click="refreshData" :loading="loading && !postData">
-          <span class="i-carbon-refresh mr-1" />
-          刷新
+        <el-button class="icon-btn" @click="refreshData" :loading="loading && !postData" title="刷新">
+          <svg v-if="!loading || postData" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
         </el-button>
       </div>
     </div>
@@ -713,6 +720,54 @@ onUnmounted(() => {
 <style scoped>
 .thread-container {
   background: #f5f5f5;
+}
+
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.icon-btn:active {
+  background: #f3f4f6;
+}
+
+.icon-btn.is-loading {
+  background: white;
+}
+
+.icon-btn[type="primary"] {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.icon-btn[type="primary"]:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.icon-btn[type="primary"]:active {
+  background: #1d4ed8;
+}
+
+.icon-btn[type="primary"] .btn-icon {
+  stroke: white;
+}
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
+  stroke: #475569;
 }
 
 .post-wrapper {

@@ -46,7 +46,12 @@ export const useForumStore = defineStore('forum', () => {
         name: forum.name,
         description: forum.description,
       })
-      myForums.value.push(forum)
+      // 创建新对象避免引用问题
+      myForums.value.push({
+        fid: forum.fid,
+        name: forum.name,
+        description: forum.description,
+      })
       return true
     } catch (error) {
       console.error('添加板块失败:', error)

@@ -26,7 +26,12 @@
       "Bash(netsh winhttp:*)",
       "Bash(Get-ChildItem Env::*)",
       "Bash(env:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "WebSearch",
+      "Bash(grep:*)",
+      "Bash(mkdir:*)",
+      "Bash(identify:*)",
+      "Bash(rm:*)"
     ]
   }
 }

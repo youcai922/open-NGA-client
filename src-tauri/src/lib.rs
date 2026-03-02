@@ -13,6 +13,10 @@ pub fn run() {
         commands::proxy_image,
         commands::open_url,
         commands::open_login_window,
+        // 二维码登录命令
+        commands::qr_login_generate,
+        commands::qr_login_check,
+        commands::qr_login_set_cookie,
         // 配置相关命令
         commands::get_cookie,
         commands::set_cookie,
@@ -30,6 +34,7 @@ pub fn run() {
             .build(),
         )?;
       }
+
       Ok(())
     })
     .run(tauri::generate_context!())

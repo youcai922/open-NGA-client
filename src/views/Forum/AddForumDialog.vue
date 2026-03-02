@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="添加板块"
-    width="600px"
+    width="500px"
     center
     @close="handleClose"
   >
@@ -11,18 +11,21 @@
       v-model="searchText"
       placeholder="搜索板块名称..."
       clearable
-      class="mb-4"
+      class="search-input"
     >
       <template #prefix>
-        <span class="i-carbon-search" />
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
       </template>
     </el-input>
 
     <!-- 板块列表 -->
-    <div class="forum-list-container max-h-96 overflow-auto border rounded">
+    <div class="forum-list-container overflow-auto border rounded">
       <!-- 加载中 -->
       <div v-if="loading" class="flex justify-center py-8">
-        <el-icon class="is-loading"><span class="i-carbon-circle-notch text-2xl" /></el-icon>
+        <el-icon class="is-loading text-blue-500"><span class="i-carbon-circle-notch text-2xl" /></el-icon>
       </div>
 
       <!-- 空状态 -->
@@ -35,7 +38,7 @@
         <div
           v-for="forum in filteredForums"
           :key="forum.fid"
-          class="forum-list-item px-4 py-3 border-b flex items-center justify-between"
+          class="forum-list-item flex items-center justify-between"
         >
           <div class="flex-1 min-w-0">
             <div class="forum-name text-sm font-medium truncate">{{ forum.name }}</div>
@@ -44,13 +47,17 @@
             </div>
           </div>
           <el-button
-            :icon="isAdded(forum.fid) ? 'i-carbon-star-filled' : 'i-carbon-star'"
-            :type="isAdded(forum.fid) ? 'warning' : 'default'"
-            size="small"
-            text
+            class="fav-btn"
+            :class="{ 'is-favorite': isAdded(forum.fid) }"
             @click="toggleFavorite(forum.fid)"
+            :key="`fav-${forum.fid}`"
           >
-            {{ isAdded(forum.fid) ? '已收藏' : '收藏' }}
+            <svg v-if="isAdded(forum.fid)" class="star-icon star-filled" viewBox="0 0 32 32">
+              <path d="M22.5,9.5L17,8.5L15,3.5L13,8.5L7.5,9.5L11.5,13L10.5,18L15,15.5L19.5,18L18.5,13L22.5,9.5Z"></path>
+            </svg>
+            <svg v-else class="star-icon star-outline" viewBox="0 0 32 32">
+              <path d="M22.5,9.5L17,8.5L15,3.5L13,8.5L7.5,9.5L11.5,13L10.5,18L15,15.5L19.5,18L18.5,13L22.5,9.5Z"></path>
+            </svg>
           </el-button>
         </div>
       </div>
@@ -175,11 +182,108 @@ watch(() => props.modelValue, async (val) => {
 </script>
 
 <style scoped>
+.search-input {
+  margin-bottom: 12px;
+}
+
+.search-input :deep(.el-input__wrapper) {
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  border-color: #93c5fd;
+}
+
+.search-input :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.search-input :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.search-icon {
+  width: 18px;
+  height: 18px;
+  color: #9ca3af;
+}
+
 .forum-list-container {
   background: #f9fafb;
+  max-height: 360px;
+}
+
+.forum-list-item {
+  padding: 6px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s;
+}
+
+.forum-name {
+  color: #1f2937;
+  font-size: 13px;
+}
+
+.forum-desc {
+  font-size: 12px;
+  margin-top: 2px;
 }
 
 .forum-list-item:last-child {
   border-bottom: none;
+}
+
+.forum-list-item:hover {
+  background: #f3f4f6;
+}
+
+.forum-name {
+  color: #1f2937;
+}
+
+.fav-btn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 0;
+  transition: none;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.fav-btn:hover {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.star-icon {
+  width: 36px;
+  height: 36px;
+  display: block;
+}
+
+.star-filled {
+  fill: #eab308;
+}
+
+.star-outline {
+  fill: none;
+  stroke: #9ca3af;
+  stroke-width: 1.5;
+}
+</style>
+
+<style>
+.el-dialog {
+  margin-top: 5vh !important;
+  margin-bottom: 5vh !important;
+}
+
+.el-dialog__body {
+  padding: 12px 20px !important;
+}
+
+.el-dialog__footer {
+  padding: 8px 20px !important;
 }
 </style>

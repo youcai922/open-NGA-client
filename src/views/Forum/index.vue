@@ -38,27 +38,14 @@
         </div>
 
         <!-- 底部操作按钮 -->
-        <div class="sidebar-footer p-3 border-t bg-white">
-          <div class="flex gap-2">
-            <el-button
-              size="small"
-              class="flex-1 !align-middle"
-              @click="showAddDialog = true"
-            >
-              <span class="i-carbon-add align-middle mr-1" />
-              <span>添加板块</span>
-            </el-button>
-            <el-button
-              size="small"
-              type="primary"
-              class="flex-1 !align-middle"
-              :loading="loading"
-              @click="initFromFavorites"
-            >
-              <span class="i-carbon-download align-middle mr-1" />
-              <span>从收藏导入</span>
-            </el-button>
-          </div>
+        <div class="sidebar-footer">
+          <el-button class="sidebar-btn" @click="showAddDialog = true">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>添加板块</span>
+          </el-button>
         </div>
       </div>
 
@@ -77,8 +64,11 @@
           <!-- 顶部工具栏 -->
           <div class="thread-header px-4 py-3 border-b bg-white sticky top-0 z-10 flex items-center justify-between">
             <div class="flex-1"></div>
-            <el-button type="primary" size="small" @click="goHome">
-              返回首页
+            <el-button class="home-icon-btn" @click="goHome">
+              <svg class="home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
             </el-button>
           </div>
 
@@ -453,6 +443,31 @@ onUnmounted(() => {
   border-bottom: 1px solid #e5e7eb;
 }
 
+.home-icon-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.home-icon-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.home-icon-btn:active {
+  background: #f3f4f6;
+}
+
+.home-icon {
+  width: 20px;
+  height: 20px;
+  color: #475569;
+}
+
 .thread-item:hover {
   border-color: #3b82f6;
 }
@@ -460,5 +475,41 @@ onUnmounted(() => {
 .thread-items {
   height: 100%;
   overflow-y: auto;
+}
+
+.sidebar-footer {
+  padding: 8px 12px;
+  border-top: 1px solid #e5e7eb;
+  background: white;
+}
+
+.sidebar-btn {
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.sidebar-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.sidebar-btn:active {
+  background: #f3f4f6;
+}
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
 }
 </style>

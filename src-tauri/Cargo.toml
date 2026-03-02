@@ -31,3 +31,5 @@ tauri-plugin-opener = "2"
 reqwest = { version = "0.12", features = ["cookies"] }
 base64 = "0.22"
 mime_guess = "2.0"
+tiny_http = "0.12"
+tokio = { version = "1", features = ["full"] }

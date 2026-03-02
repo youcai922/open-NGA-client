@@ -9,6 +9,7 @@ import { ngaApiRequest } from '@/api/nga'
 const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   // ac 类别表情（按数字排序）
   'blink': { file: 'ac0' },
+  'goodjob': { file: 'ac1' },
   '笑': { file: 'ac1' },
   '上': { file: 'ac2' },
   '中枪': { file: 'ac3' },
@@ -16,10 +17,10 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '黑': { file: 'ac5' },
   '乖': { file: 'ac6' },
   '惊': { file: 'ac7' },
-  '抓': { file: 'ac8' },
-  '晕': { file: 'ac9' },
+  '吓': { file: 'ac8' },
+  '吻': { file: 'ac9' },
   '呆': { file: 'ac10' },
-  '滑': { file: 'ac11' },
+  '咦': { file: 'ac11' },
   '汗': { file: 'ac12' },
   '酷': { file: 'ac13' },
   '羞': { file: 'ac14' },
@@ -28,11 +29,11 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '喘': { file: 'ac17' },
   '喷': { file: 'ac18' },
   '默': { file: 'ac19' },
-  '贼': { file: 'ac20' },
+  '嘲笑1': { file: 'ac20' },
   '疑': { file: 'ac21' },
   '衰': { file: 'ac22' },
   '呲牙': { file: 'ac24' },
-  '鬼脸': { file: 'ac25' },
+  '怒': { file: 'ac25' },
   '冷': { file: 'ac26' },
   '嘘': { file: 'ac27' },
   '倒': { file: 'ac28' },
@@ -40,11 +41,11 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '啊': { file: 'ac30' },
   '鄙视': { file: 'ac31' },
   '拳头': { file: 'ac32' },
-  '胜利': { file: 'ac33' },
+  '晕': { file: 'ac33' },
   'OK': { file: 'ac34' },
   '瞎': { file: 'ac35' },
   '咖啡': { file: 'ac36' },
-  '饭': { file: 'ac37' },
+  '羡慕': { file: 'ac37' },
   '睡': { file: 'ac38' },
   '茶': { file: 'ac39' },
   '风扇': { file: 'ac40' },
@@ -58,15 +59,22 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
 
   // a2 类别表情（按数字排序）
   '偷笑': { file: 'a2_03' },
+  '诶嘿': { file: 'a2_05' },
   '那个…': { file: 'a2_08' },
   '有何贵干': { file: 'a2_11' },
   '大哭': { file: 'a2_15' },
+  '哭': { file: 'a2_17' },
   'yes': { file: 'a2_26' },
   'doge': { file: 'a2_27' },
   '自戳双目': { file: 'a2_28' },
+  '干杯': { file: 'a2_54' },
+  '干杯2': { file: 'a2_55' },
 
   // ng 类别表情
   '吃瓜': { file: 'ng_17' },
+
+  // pst 类别表情
+  '亲': { file: 'pt01' },
 }
 
 // NGA 表情 CDN 基础 URL
