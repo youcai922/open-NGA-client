@@ -79,7 +79,7 @@ pnpm tauri dev
 ## 🔐 隐私说明
 
 本应用仅为 NGA 论坛的第三方客户端，所有数据均直接从 NGA 服务器获取，不收集任何用户信息。
-相关Cookie和收藏板块存储位置为C:\Users\admin\AppData\Roaming\com.openga.client\settings\config.yml，本项目不收集任何信息。
+- 相关Cookie和收藏板块存储位置为C:\Users\admin\AppData\Roaming\com.openga.client\settings\config.yml，本项目不收集任何信息。
 
 ---
 
