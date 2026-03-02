@@ -58,6 +58,7 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
 
   // a2 类别表情（按数字排序）
   '偷笑': { file: 'a2_03' },
+  '那个…': { file: 'a2_08' },
   '有何贵干': { file: 'a2_11' },
   '大哭': { file: 'a2_15' },
   'yes': { file: 'a2_26' },

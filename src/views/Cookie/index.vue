@@ -4,37 +4,6 @@
       <h2 class="text-lg font-semibold">Cookie 设置</h2>
     </div>
     <div class="cookie-content flex-1 overflow-auto p-6">
-      <!-- 快捷登录方式 -->
-      <div v-if="!cookieStore.hasCookie()" class="mb-6">
-        <el-card shadow="hover">
-          <template #header>
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="i-carbon-link text-blue-500 text-xl"></span>
-                <span class="font-semibold">快捷方式</span>
-              </div>
-              <el-button type="primary" @click="openLoginPage" size="small">
-                <span class="i-carbon-launch mr-1"></span>
-                打开登录页
-              </el-button>
-            </div>
-          </template>
-
-          <div class="text-sm bg-gray-50 p-3 rounded">
-            <p class="mb-2"><strong>步骤：</strong></p>
-            <ol class="list-decimal list-inside space-y-1 text-xs text-gray-600">
-              <li>点击上方按钮在浏览器中打开 NGA 论坛</li>
-              <li>登录您的账号</li>
-              <li>按 <kbd class="px-1 py-0.5 bg-gray-200 rounded">F12</kbd> 打开开发者工具</li>
-              <li>找到 Cookies → bbs.nga.cn</li>
-              <li>复制 <code class="bg-gray-200 px-1 rounded">ngaPassportUid</code> 和 <code class="bg-gray-200 px-1 rounded">ngaPassportKey</code> 的值</li>
-              <li>粘贴到下方输入框，格式：<code class="bg-gray-200 px-1 rounded text-xs">ngaPassportUid=xxx; ngaPassportKey=yyy</code></li>
-            </ol>
-          </div>
-        </el-card>
-      </div>
-
-      <!-- 原有的 Cookie 设置 -->
       <el-alert
         title="手动获取 Cookie"
         type="info"
@@ -130,19 +99,6 @@ onMounted(async () => {
   await cookieStore.init()
   form.cookie = cookieStore.cookie
 })
-
-// 打开登录页
-const openLoginPage = () => {
-  const url = 'https://bbs.nga.cn/'
-  const link = document.createElement('a')
-  link.href = url
-  link.target = '_blank'
-  link.style.display = 'none'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  ElMessage.success('已在浏览器中打开 NGA 论坛，请登录后返回此页面粘贴 Cookie')
-}
 
 const saveCookie = async () => {
   if (!form.cookie.trim()) {
