@@ -172,22 +172,13 @@ const loadThreads = async (isFirstPage: boolean = false) => {
   }
 
   try {
-    console.log('=== 加载主题列表 ===')
-    console.log('板块 fid:', forumStore.currentForum.fid)
-    console.log('当前页:', currentPage.value)
-
     const response = await ngaApiRequest.getThreadList({
       fid: forumStore.currentForum.fid.toString(),
       page: currentPage.value.toString(),
     })
 
-    console.log('响应:', response)
-    console.log('success:', response.success)
-    console.log('body length:', response.body?.length || 0)
-
     if (response.success && response.body) {
       const data = parseThreadList(response.body)
-      console.log('解析结果:', data.threads.length, '个主题')
 
       if (isFirstPage) {
         threads.value = data.threads
@@ -214,7 +205,6 @@ const loadThreads = async (isFirstPage: boolean = false) => {
 const loadMore = async () => {
   if (loadingMore.value || !hasMore.value) return
 
-  console.log('=== 加载更多 ===')
   currentPage.value++
   await loadThreads(false)
 }
@@ -236,8 +226,6 @@ const handleScroll = (event: Event) => {
 const parseThreadList = (body: string): { threads: Thread[], total: number } => {
   const threads: Thread[] = []
 
-  console.log('开始解析主题列表 HTML...')
-
   try {
     // 使用 DOMParser 解析 HTML
     const parser = new DOMParser()
@@ -245,7 +233,6 @@ const parseThreadList = (body: string): { threads: Thread[], total: number } => 
 
     // 查找所有 topicrow 元素
     const topicRows = doc.querySelectorAll('.topicrow')
-    console.log(`找到 ${topicRows.length} 个 topicrow 元素`)
 
     // 跳过第一个（通常是表头）
     for (let i = 1; i < topicRows.length; i++) {
@@ -280,14 +267,11 @@ const parseThreadList = (body: string): { threads: Thread[], total: number } => 
           replies,
           last_post: 0,
         })
-        console.log(`解析主题 ${i}: tid=${tid}, title=${subject}`)
       }
     }
   } catch (error) {
     console.error('解析主题列表失败:', error)
   }
-
-  console.log(`总共解析出 ${threads.length} 个主题`)
 
   return { threads, total: threads.length || 100 }
 }

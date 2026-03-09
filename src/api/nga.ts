@@ -17,42 +17,16 @@ export interface ProxyImageResponse {
   error?: string
 }
 
-// 日志输出
+// 日志输出（已禁用）
 const log = {
-  info: (...args: any[]) => console.log('[NGA API Info]', ...args),
+  info: (..._args: any[]) => {},
   error: (...args: any[]) => console.error('[NGA API Error]', ...args),
-  request: (url: string, cookie: string) => {
-    console.log('[NGA API Request]')
-    console.log('  URL:', url)
-    console.log('  Cookie length:', cookie.length)
-    console.log('  Cookie preview:', cookie.substring(0, 50) + '...')
-  },
-  response: (response: any) => {
-    console.log('[NGA API Response Received]')
-    console.log('  Response type:', typeof response)
-    console.log('  Response keys:', response ? Object.keys(response) : 'null')
-    console.log('  Success:', response?.success)
-    console.log('  Status:', response?.status)
-    console.log('  Body length:', response?.body?.length || 0)
-    console.log('  Body preview:', response?.body ? response.body.substring(0, 100) + '...' : 'no body')
-    console.log('  Error:', response?.error)
-  },
-  invokeStart: (command: string, params: any) => {
-    console.log('[NGA API Invoke Start]')
-    console.log('  Command:', command)
-    console.log('  Params:', JSON.stringify(params, null, 2))
-  },
-  invokeEnd: (command: string, result: any) => {
-    console.log('[NGA API Invoke End]')
-    console.log('  Command:', command)
-    console.log('  Result type:', typeof result)
-    console.log('  Result:', result)
-  },
+  request: (_url: string, _cookie: string) => {},
+  response: (_response: any) => {},
+  invokeStart: (_command: string, _params: any) => {},
+  invokeEnd: (_command: string, _result: any) => {},
   invokeError: (command: string, error: any) => {
-    console.error('[NGA API Invoke Error]')
-    console.error('  Command:', command)
-    console.error('  Error:', error)
-    console.error('  Error message:', error?.message || error)
+    console.error('[NGA API Invoke Error]', command, error)
   },
 }
 

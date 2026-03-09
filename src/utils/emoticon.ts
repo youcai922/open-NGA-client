@@ -34,9 +34,9 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '衰': { file: 'ac22' },
   '呲牙': { file: 'ac24' },
   '怒': { file: 'ac25' },
-  '冷': { file: 'ac26' },
+  '怕': { file: 'ac26' },
   '嘘': { file: 'ac27' },
-  '倒': { file: 'ac28' },
+  '愁': { file: 'ac28' },
   '抓狂': { file: 'ac29' },
   '抠鼻': { file: 'ac30' },
   '鄙视': { file: 'ac31' },
@@ -46,11 +46,11 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '瞎': { file: 'ac35' },
   '咖啡': { file: 'ac36' },
   '羡慕': { file: 'ac37' },
-  '睡': { file: 'ac38' },
+  '花痴': { file: 'ac38' },
   '茶': { file: 'ac39' },
   '风扇': { file: 'ac40' },
   '雨': { file: 'ac41' },
-  '星星': { file: 'ac42' },
+  '赞同': { file: 'ac42' },
   '闪光': { file: 'ac43' },
   '黑枪': { file: 'ac44' },
   '礼物': { file: 'ac45' },
@@ -63,18 +63,24 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '那个…': { file: 'a2_08' },
   '有何贵干': { file: 'a2_11' },
   '病娇': { file: 'a2_12' },
+  'lucky': { file: 'a2_13' },
   '大哭': { file: 'a2_15' },
   '哭': { file: 'a2_17' },
+  '你看看你': { file: 'a2_25' },
   'yes': { file: 'a2_26' },
   'doge': { file: 'a2_27' },
   '自戳双目': { file: 'a2_28' },
+  '冷笑': { file: 'a2_31' },
   '不活了': { file: 'a2_33' },
+  '不明觉厉': { file: 'a2_36' },
+  'jojo立3': { file: 'a2_39' },
   '你已经死了': { file: 'a2_45' },
   '认真': { file: 'a2_48' },
   '干杯': { file: 'a2_54' },
   '干杯2': { file: 'a2_55' },
 
   // ng 类别表情
+  '扇笑': { file: 'ng_8' },
   '吃瓜': { file: 'ng_17' },
 
   // pst 类别表情
@@ -419,13 +425,29 @@ export function parseBBCode(content: string): string {
 }
 
 /**
+ * 解码 HTML 实体编码
+ * 将 &#128591; 这样的编码转换为实际的字符
+ */
+function decodeHtmlEntities(content: string): string {
+  if (!content) return content
+
+  // 使用浏览器的 innerHTML 来解码 HTML 实体
+  const textarea = document.createElement('textarea')
+  textarea.innerHTML = content
+  return textarea.value
+}
+
+/**
  * 综合处理 NGA 内容（表情 + 引用块 + 图片 + BBCode）
  */
 export async function parseNgaContent(content: string): Promise<string> {
   if (!content) return content
 
+  // 首先解码 HTML 实体编码
+  let parsed = decodeHtmlEntities(content)
+
   // 先解析内联引用（包含 [b] 标签）
-  let parsed = parseInlineQuotes(content)
+  parsed = parseInlineQuotes(parsed)
 
   // 解析引用块
   parsed = parseNgaQuotes(parsed)

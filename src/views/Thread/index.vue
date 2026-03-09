@@ -166,26 +166,19 @@ const threadUrl = computed(() => `https://bbs.nga.cn/read.php?tid=${tid.value}`)
 // 获取 tid 参数
 const tid = ref<number>(0)
 
-// 格式化时间
+// 格式化时间 - 显示详细时间
 const formatTime = (timestamp: number) => {
   if (!timestamp) return ''
   const date = new Date(timestamp * 1000)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
-  if (days === 0) {
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    if (hours === 0) {
-      const minutes = Math.floor(diff / (1000 * 60))
-      return minutes === 0 ? '刚刚' : `${minutes} 分钟前`
-    }
-    return `${hours} 小时前`
-  } else if (days < 7) {
-    return `${days} 天前`
-  } else {
-    return date.toLocaleDateString('zh-CN')
-  }
+  // 格式化为：YYYY-MM-DD HH:mm
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+
+  return `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
 // 加载帖子详情
@@ -222,6 +215,78 @@ const loadPostDetail = async (isFirstPage: boolean = true) => {
 // 解析帖子内容
 const parsePostContent = async (body: string, isFirstPage: boolean) => {
   try {
+    // 先尝试从HTML中提取用户名映射
+    // NGA论坛通常在JavaScript中定义了用户信息
+    const userMap = new Map<number, string>()
+
+    // 尝试匹配 __UID_64691174 = '用户名' 这样的模式
+    const uidPattern = /__UID_(\d+)\s*=\s*['"]([^'"]+)['"]/g
+    let match
+    while ((match = uidPattern.exec(body)) !== null) {
+      const uid = parseInt(match[1])
+      const username = match[2]
+      userMap.set(uid, username)
+    }
+
+    // 尝试匹配其他可能的用户名格式
+    const unamePattern = /__UNAME_(\d+)\s*=\s*['"]([^'"]+)['"]/g
+    while ((match = unamePattern.exec(body)) !== null) {
+      const uid = parseInt(match[1])
+      const username = match[2]
+      userMap.set(uid, username)
+    }
+
+    // 尝试从 script 标签中提取用户信息
+    const scriptPattern = /uid['"]\s*:\s*(\d+)[^}]*username['"]\s*:\s*['"]([^'"]+)['"]/gi
+    while ((match = scriptPattern.exec(body)) !== null) {
+      const uid = parseInt(match[1])
+      const username = match[2]
+      userMap.set(uid, username)
+    }
+
+    // 定义辅助函数：从用户链接元素中提取用户名
+    const extractUsername = (userLink: Element | null): string => {
+      if (!userLink) {
+        return '用户'
+      }
+
+      // 方法1：获取完整的textContent，然后去除第一个字符（<b>标签的内容）
+      // HTML结构: <a><b>x</b>用户名</a>
+      const fullText = userLink.textContent?.trim() || ''
+      if (fullText.length > 1) {
+        // 去掉首字母（来自<b>标签）
+        return fullText.substring(1)
+      }
+
+      // 方法2：获取所有子节点，找到文本节点
+      let username = ''
+      userLink.childNodes.forEach((node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent?.trim() || ''
+          if (text && text.length > 0) {
+            username = text
+          }
+        }
+      })
+      if (username) {
+        return username
+      }
+
+      // 方法3：从用户映射中获取
+      const href = userLink.getAttribute('href') || ''
+      const uidMatch = href.match(/uid=(\d+)/)
+      if (uidMatch && userMap.has(parseInt(uidMatch[1]))) {
+        return userMap.get(parseInt(uidMatch[1])) || '用户'
+      }
+
+      // 方法4：最后使用UID
+      if (uidMatch) {
+        return `用户${uidMatch[1]}`
+      }
+
+      return '用户'
+    }
+
     const parser = new DOMParser()
     const doc = parser.parseFromString(body, 'text/html')
 
@@ -270,15 +335,9 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
           }
         }
 
-        // 获取用户 UID 并显示
+        // 获取用户名
         const userLink = doc.getElementById('postauthor0')
-        if (userLink) {
-          const href = userLink.getAttribute('href') || ''
-          const uidMatch = href.match(/uid=(\d+)/)
-          if (uidMatch) {
-            author = `用户${uidMatch[1]}`
-          }
-        }
+        author = extractUsername(userLink)
 
         postData.value = {
           subject,
@@ -333,8 +392,46 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
         let replyAuthor = '用户'
         let replyTime = serverNow
 
+        // 智能查找对应的作者链接
+        // 不要依赖索引，直接从 replyElement 的 DOM 结构中查找
+        const actualIndex = isFirstPage ? i : i
+        let userLink: HTMLElement | null = null
+
+        // 方法1：从 replyElement 中提取 pid，查找对应的 posterinfo
+        const replyPid = replyElement.id.replace('postcontentandsubject', '')
+
+        // 查找同级元素中的 posterinfo（NGA HTML 结构中，posterinfo 和 postcontentandsubject 通常在同一级）
+        const parentElement = replyElement.parentElement
+        if (parentElement) {
+          // 查找同级中的 posterinfo
+          const siblingPosterInfo = Array.from(parentElement.children).find(el =>
+            el.classList.contains('posterinfo') || el.id === `posterinfo${replyPid}`
+          )
+          if (siblingPosterInfo) {
+            userLink = siblingPosterInfo.querySelector('a[id^="postauthor"]') as any
+          }
+        }
+
+        // 方法2：如果找不到，尝试在父级的父级中查找
+        if (!userLink && parentElement?.parentElement) {
+          const grandParent = parentElement.parentElement
+          const posterInfo = grandParent.querySelector('.posterinfo') as any
+          if (posterInfo) {
+            userLink = posterInfo.querySelector('a[id^="postauthor"]')
+          }
+        }
+
+        // 方法3：如果还是找不到，尝试使用索引（作为最后的备用方案）
+        if (!userLink) {
+          userLink = doc.getElementById(`postauthor${actualIndex}`)
+        }
+
+        replyAuthor = extractUsername(userLink)
+
         // 从文档中查找对应的时间元素
-        const postDateId = `postdate${i}`
+        // 注意：第二页时，元素的ID可能不是从0开始
+        // 需要找到对应的时间元素，它可能在 replyElement 内部或附近
+        const postDateId = `postdate${actualIndex}`
         const postDateElement = doc.getElementById(postDateId)
         if (postDateElement) {
           const dateText = postDateElement.textContent?.trim() || ''
@@ -343,16 +440,16 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
             const [, year, month, day, hour, minute] = dateMatch
             replyTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).getTime() / 1000
           }
-        }
-
-        // 获取用户 UID
-        const postAuthorId = `postauthor${i}`
-        const userLink = doc.getElementById(postAuthorId)
-        if (userLink) {
-          const href = userLink.getAttribute('href') || ''
-          const uidMatch = href.match(/uid=(\d+)/)
-          if (uidMatch) {
-            replyAuthor = `用户${uidMatch[1]}`
+        } else {
+          // 如果找不到对应的时间元素，尝试在 replyElement 内部查找
+          const innerDateElement = replyElement.querySelector('[id^="postdate"]')
+          if (innerDateElement) {
+            const dateText = innerDateElement.textContent?.trim() || ''
+            const dateMatch = dateText.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/)
+            if (dateMatch) {
+              const [, year, month, day, hour, minute] = dateMatch
+              replyTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).getTime() / 1000
+            }
           }
         }
 
@@ -409,16 +506,9 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
             continue
           }
 
-          // 获取用户 UID
-          let hotAuthor = '用户'
+          // 获取用户名
           const userLink = hotReply.querySelector('a[href*="uid="]')
-          if (userLink) {
-            const href = userLink.getAttribute('href') || ''
-            const uidMatch = href.match(/uid=(\d+)/)
-            if (uidMatch) {
-              hotAuthor = `用户${uidMatch[1]}`
-            }
-          }
+          const hotAuthor = extractUsername(userLink)
 
           rawHotReplies.push({
             element: hotReply,
@@ -665,14 +755,8 @@ onMounted(() => {
 
 // 跳转到指定回复
 const jumpToReply = (pid: number) => {
-  console.log('查找 pid:', pid, '类型:', typeof pid)
-  console.log('回复总数:', replies.value.length)
-  console.log('前 5 个 pid:', replies.value.slice(0, 5).map(r => r.pid))
-  console.log('后 5 个 pid:', replies.value.slice(-5).map(r => r.pid))
-
   // 在当前回复列表中查找
   const replyIndex = replies.value.findIndex(r => r.pid === pid)
-  console.log('找到的索引:', replyIndex)
 
   if (replyIndex !== -1) {
     // 找到了，滚动到该位置

@@ -4,8 +4,7 @@
 
 一个现代化的 NGA 论坛桌面客户端，提供更好的浏览体验和本地化功能。
 
-![版本](https://img.shields.io/badge/版本-0.1.0-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
+![版本](https://img.shields.io/badge/版本-0.1.0-blue)![License](https://img.shields.io/badge/License-MIT-green)
 
 ## ⚠ 警告
 
@@ -26,40 +25,7 @@
 
 ## 🚀 快速开始
 
-### 环境要求
-
-- Node.js >= 20.0.0
-- pnpm >= 9.0.0
-- Rust >= 1.80.0
-- WebView2 (Windows)
-
-### 安装依赖
-
-```bash
-pnpm install
-```
-
-### 开发模式
-
-```bash
-pnpm tauri dev
-```
-
-或者使用无代理模式：
-
-```powershell
-.\dev-no-proxy.ps1
-```
-
-
-
-## 🐛 Bugfix
-
-- bugfix：修复帖子展示用户名称异常问题
-- bugfix：修复帖子展示时间异常问题
-- bugfix：修复 nga 表情加载异常问题
-
----
+> 💡 **详细的安装和开发指南**: 查看 [QUICKSTART.md](./QUICKSTART.md)
 
 ## 📋 计划实现
 
