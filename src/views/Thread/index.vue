@@ -53,41 +53,60 @@
       <div v-else-if="postData" class="post-wrapper">
         <!-- 主帖 -->
         <div class="post-main mb-4">
-          <div class="post-header bg-white p-4 border-b">
-            <h1 class="post-title text-lg font-semibold mb-2">{{ postData.subject }}</h1>
-            <div class="post-meta text-sm text-gray-500 flex items-center gap-3">
-              <span class="author">{{ postData.author }}</span>
-              <span class="time">{{ formatTime(postData.postDate) }}</span>
+          <div class="post-header px-5 py-1.5 flex items-center justify-between border-b border-gray-100 bg-white">
+            <div class="flex items-center gap-2 flex-1">
+              <span class="post-tag text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">楼主</span>
+              <h1 class="post-title text-sm font-medium text-gray-700">{{ postData.subject }}</h1>
+            </div>
+            <div class="flex items-center gap-2">
+              <span
+                v-if="postData.authorId"
+                class="author text-xs text-gray-400 cursor-pointer hover:text-blue-500 hover:underline"
+                @click="goToUserThreads(postData.authorId, postData.author)"
+              >
+                {{ postData.author }}
+              </span>
+              <span v-else class="author text-xs text-gray-400">{{ postData.author }}</span>
+              <span class="time text-xs text-gray-300">{{ formatTime(postData.postDate) }}</span>
             </div>
           </div>
-          <div class="post-content bg-white p-4" v-html="postData.content"></div>
+          <div class="post-content px-5 pt-1.5 pb-2 text-sm text-gray-800" v-html="postData.content"></div>
         </div>
 
         <!-- 回复列表 -->
-        <div class="post-replies">
-          <div class="replies-header bg-gray-50 px-4 py-2 border-b text-sm font-medium text-gray-600">
-            全部回复
+        <div class="post-replies bg-white">
+          <div class="replies-header px-5 py-2 border-b border-gray-100">
+            <span class="text-sm font-medium text-gray-600">全部回复</span>
           </div>
-          <div v-if="replies.length > 0">
+          <div v-if="replies.length > 0" class="replies-container">
             <div
               v-for="reply in replies"
               :key="reply.pid"
-              class="reply-item bg-white border-b"
+              class="reply-item bg-white hover:bg-gray-50 transition-colors"
               :class="{ 'hot-reply': reply.isHot }"
             >
-              <div class="reply-header px-4 py-2 flex items-center justify-between bg-gray-50">
+              <div class="reply-header px-5 py-1 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <span v-if="reply.isHot" class="hot-badge text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded">
+                  <!-- 热门标签 -->
+                  <div v-if="reply.isHot" class="hot-badge text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">
                     热门
+                  </div>
+                  <!-- 楼层号 - 弱化 -->
+                  <span class="floor-num text-xs text-gray-300">#{{ reply.floor }}</span>
+                  <!-- 用户名 -->
+                  <span
+                    v-if="reply.authorId"
+                    class="author text-xs text-gray-400 cursor-pointer hover:text-blue-500 hover:underline"
+                    @click="goToUserThreads(reply.authorId, reply.author)"
+                  >
+                    {{ reply.author }}
                   </span>
-                  <span class="floor-num text-sm font-medium text-blue-600">
-                    #{{ reply.floor }}
-                  </span>
-                  <span class="author text-sm">{{ reply.author }}</span>
+                  <span v-else class="author text-xs text-gray-400">{{ reply.author }}</span>
                 </div>
-                <span class="time text-xs text-gray-400">{{ formatTime(reply.postDate) }}</span>
+                <!-- 时间 -->
+                <span class="time text-xs text-gray-300">{{ formatTime(reply.postDate) }}</span>
               </div>
-              <div class="reply-content px-4 py-3 text-sm" v-html="reply.content"></div>
+              <div class="reply-content px-5 pt-1 pb-2 text-sm text-gray-800" v-html="reply.content"></div>
             </div>
 
             <!-- 加载更多 -->
@@ -143,6 +162,7 @@ const contentRef = ref<HTMLElement | null>(null)
 interface PostData {
   subject: string
   author: string
+  authorId?: number
   content: string
   postDate: number
 }
@@ -151,6 +171,7 @@ interface Reply {
   pid: number
   floor: number // 楼层号
   author: string
+  authorId?: number
   content: string
   postDate: number
   isHot?: boolean
@@ -244,18 +265,23 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
       userMap.set(uid, username)
     }
 
-    // 定义辅助函数：从用户链接元素中提取用户名
-    const extractUsername = (userLink: Element | null): string => {
+    // 定义辅助函数：从用户链接元素中提取用户名和用户ID
+    const extractUserInfo = (userLink: Element | null): { username: string; authorId?: number } => {
       if (!userLink) {
-        return '用户'
+        return { username: '用户' }
       }
+
+      // 提取用户ID
+      const href = userLink.getAttribute('href') || ''
+      const uidMatch = href.match(/uid=(\d+)/)
+      const authorId = uidMatch ? parseInt(uidMatch[1]) : undefined
 
       // 方法1：获取完整的textContent，然后去除第一个字符（<b>标签的内容）
       // HTML结构: <a><b>x</b>用户名</a>
       const fullText = userLink.textContent?.trim() || ''
       if (fullText.length > 1) {
         // 去掉首字母（来自<b>标签）
-        return fullText.substring(1)
+        return { username: fullText.substring(1), authorId }
       }
 
       // 方法2：获取所有子节点，找到文本节点
@@ -269,22 +295,20 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
         }
       })
       if (username) {
-        return username
+        return { username, authorId }
       }
 
       // 方法3：从用户映射中获取
-      const href = userLink.getAttribute('href') || ''
-      const uidMatch = href.match(/uid=(\d+)/)
       if (uidMatch && userMap.has(parseInt(uidMatch[1]))) {
-        return userMap.get(parseInt(uidMatch[1])) || '用户'
+        return { username: userMap.get(parseInt(uidMatch[1])) || '用户', authorId }
       }
 
       // 方法4：最后使用UID
       if (uidMatch) {
-        return `用户${uidMatch[1]}`
+        return { username: `用户${uidMatch[1]}`, authorId }
       }
 
-      return '用户'
+      return { username: '用户', authorId }
     }
 
     const parser = new DOMParser()
@@ -335,13 +359,15 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
           }
         }
 
-        // 获取用户名
+        // 获取用户信息
         const userLink = doc.getElementById('postauthor0')
-        author = extractUsername(userLink)
+        const userInfo = extractUserInfo(userLink)
+        author = userInfo.username
 
         postData.value = {
           subject,
           author,
+          authorId: userInfo.authorId,
           content,
           postDate,
         }
@@ -360,6 +386,7 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
         index: number
         pid: number
         author: string
+        authorId?: number
         time: number
       }> = []
 
@@ -426,7 +453,8 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
           userLink = doc.getElementById(`postauthor${actualIndex}`)
         }
 
-        replyAuthor = extractUsername(userLink)
+        const userInfo = extractUserInfo(userLink)
+        replyAuthor = userInfo.username
 
         // 从文档中查找对应的时间元素
         // 注意：第二页时，元素的ID可能不是从0开始
@@ -458,6 +486,7 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
           index: i,
           pid,
           author: replyAuthor,
+          authorId: userInfo.authorId,
           time: replyTime,
         })
 
@@ -476,13 +505,17 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
 
       const convertedContents = await Promise.all(contentPromises)
 
+      // 计算起始楼层号
+      const startFloor = isFirstPage ? 1 : replies.value.length + 1
+
       // 构建回复列表
       for (let i = 0; i < rawReplies.length; i++) {
         const raw = rawReplies[i]
         repliesList.push({
           pid: raw.pid,
-          floor: currentFloor.value + repliesList.length + (isFirstPage ? 1 : 0),
+          floor: startFloor + repliesList.length,
           author: raw.author,
+          authorId: raw.authorId,
           content: convertedContents[i],
           postDate: raw.time,
         })
@@ -495,6 +528,7 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
           element: Element
           pid: number
           author: string
+          authorId?: number
         }> = []
 
         for (const hotReply of hotReplyElements) {
@@ -506,14 +540,15 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
             continue
           }
 
-          // 获取用户名
+          // 获取用户信息
           const userLink = hotReply.querySelector('a[href*="uid="]')
-          const hotAuthor = extractUsername(userLink)
+          const userInfo = extractUserInfo(userLink)
 
           rawHotReplies.push({
             element: hotReply,
             pid: hotPid,
-            author: hotAuthor,
+            author: userInfo.username,
+            authorId: userInfo.authorId,
           })
 
           // 记录 pid
@@ -531,13 +566,14 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
 
         const hotConvertedContents = await Promise.all(hotContentPromises)
 
-        // 添加热门回复
+        // 添加热门回复（楼层号继续累加）
         for (let i = 0; i < rawHotReplies.length; i++) {
           const raw = rawHotReplies[i]
           repliesList.push({
             pid: raw.pid,
-            floor: currentFloor.value + repliesList.length + (isFirstPage ? 1 : 0),
+            floor: startFloor + repliesList.length,
             author: raw.author,
+            authorId: raw.authorId,
             content: hotConvertedContents[i],
             postDate: serverNow,
             isHot: true,
@@ -655,6 +691,15 @@ const handleScroll = (event: Event) => {
 // 返回
 const goBack = () => {
   router.back()
+}
+
+// 跳转到用户帖子列表
+const goToUserThreads = (authorId: number, username: string) => {
+  router.push({
+    name: 'UserThreads',
+    params: { authorId: authorId.toString() },
+    query: { username }
+  })
 }
 
 // 刷新
@@ -797,7 +842,7 @@ onUnmounted(() => {
 
 <style scoped>
 .thread-container {
-  background: #f5f5f5;
+  background: #f8fafc;
 }
 
 .icon-btn {
@@ -852,8 +897,40 @@ onUnmounted(() => {
   padding-bottom: 20px;
 }
 
+/* 主帖样式 */
+.post-main {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.post-title {
+  flex: 1;
+  line-height: 1.4;
+  font-size: 16px;
+}
+
+.post-tag {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.floor-num {
+  font-weight: normal;
+  color: #9ca3af;
+}
+
 .post-content {
-  line-height: 1.8;
+  line-height: 1.7;
   word-wrap: break-word;
 }
 
@@ -868,11 +945,56 @@ onUnmounted(() => {
 }
 
 .post-content :deep(a:hover) {
+  color: #2563eb;
   text-decoration: underline;
 }
 
+/* 回复列表样式 */
+.replies-container {
+  background: white;
+}
+
+.replies-header {
+  background: white;
+}
+
+/* 回复项样式 */
+.reply-item {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.15s ease;
+}
+
+.reply-item:hover {
+  background-color: #fafafa;
+}
+
+.reply-item:last-child {
+  border-bottom: none;
+}
+
+.reply-item.hot-reply {
+  border-left: 3px solid #f97316;
+  background-color: #fffbf7;
+}
+
+.reply-item.hot-reply:hover {
+  background-color: #fff5eb;
+}
+
+.floor-num {
+  font-weight: normal;
+}
+
+.author {
+  color: #9ca3af;
+}
+
+.time {
+  color: #d1d5db;
+}
+
 .reply-content {
-  line-height: 1.6;
+  line-height: 1.7;
   word-wrap: break-word;
 }
 
@@ -887,14 +1009,20 @@ onUnmounted(() => {
 }
 
 .reply-content :deep(a:hover) {
+  color: #2563eb;
   text-decoration: underline;
 }
 
-.hot-reply {
-  border-left: 3px solid #f97316;
+.reply-content :deep(.nga-quote-block) {
+  margin: 6px 0;
 }
 
-.hot-badge {
-  font-weight: 500;
+.reply-content :deep(.nga-inline-quote) {
+  margin: 4px 0;
+}
+
+.reply-content :deep(s) {
+  text-decoration: line-through;
+  color: #9ca3af;
 }
 </style>

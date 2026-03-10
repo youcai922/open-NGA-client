@@ -1,5 +1,9 @@
 <template>
-  <router-view />
+  <router-view v-slot="{ Component, route }">
+    <keep-alive :include="['Forum', 'Search']">
+      <component :is="Component" :key="route.name" />
+    </keep-alive>
+  </router-view>
 </template>
 
 <script setup lang="ts">

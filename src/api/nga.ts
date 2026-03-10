@@ -114,6 +114,28 @@ export const ngaApiRequest = {
     return rustRequest(url.toString())
   },
 
+  // 获取用户发布的帖子 (thread.php?authorid=xxx)
+  getUserThreads: async (params: { authorid: string; page?: string }) => {
+    const url = buildUrl(ngaConfig.apiPaths.thread, params)
+    return rustRequest(url.toString())
+  },
+
+  // 搜索帖子 (thread.php?key=xxx&fid=xxx)
+  searchThreads: async (params: { key: string; fid?: number; page?: number }) => {
+    const searchParams: Record<string, string> = {
+      key: params.key,
+      content: '4', // 搜索范围：4=搜索帖子内容
+    }
+    if (params.fid !== undefined) {
+      searchParams.fid = params.fid.toString()
+    }
+    if (params.page !== undefined) {
+      searchParams.page = params.page.toString()
+    }
+    const url = buildUrl(ngaConfig.apiPaths.thread, searchParams)
+    return rustRequest(url.toString())
+  },
+
   // 发表回复 (misc.php)
   postReply: async (_data: any) => {
     // POST 请求暂不实现，需要更新 Rust 端

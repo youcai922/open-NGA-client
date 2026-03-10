@@ -18,6 +18,17 @@ const routes: RouteRecordRaw[] = [
     props: true
   },
   {
+    path: '/user/:authorId',
+    name: 'UserThreads',
+    component: () => import('@/views/UserThreads/index.vue'),
+    props: true
+  },
+  {
+    path: '/search',
+    name: 'Search',
+    component: () => import('@/views/Search/index.vue')
+  },
+  {
     path: '/post',
     name: 'Post',
     component: () => import('@/views/Post/index.vue')

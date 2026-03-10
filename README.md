@@ -4,7 +4,7 @@
 
 一个现代化的 NGA 论坛桌面客户端，提供更好的浏览体验和本地化功能。
 
-![版本](https://img.shields.io/badge/版本-0.1.0-blue)![License](https://img.shields.io/badge/License-MIT-green)
+![版本](https://img.shields.io/badge/版本-0.1.1-blue)  ![License](https://img.shields.io/badge/License-MIT-green)
 
 ## ⚠ 警告
 

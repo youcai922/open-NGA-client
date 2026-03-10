@@ -63,17 +63,36 @@
         <div v-else class="thread-list h-full flex flex-col">
           <!-- 顶部工具栏 -->
           <div class="thread-header px-4 py-3 border-b bg-white sticky top-0 z-10 flex items-center justify-between">
-            <div class="flex-1"></div>
-            <el-button class="home-icon-btn" @click="goHome">
-              <svg class="home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <el-button class="icon-btn" @click="goHome" title="返回首页">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                 <polyline points="9 22 9 12 15 12 15 22"></polyline>
               </svg>
             </el-button>
+            <div class="flex items-center gap-2">
+              <el-button
+                v-if="forumStore.currentForum"
+                class="icon-btn"
+                @click="goToSearch"
+                title="搜索本板块"
+              >
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.35-4.35"></path>
+                </svg>
+              </el-button>
+              <el-button class="icon-btn" @click="refreshThreads" title="刷新">
+                <svg v-if="!loadingThreads" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+              </el-button>
+            </div>
           </div>
 
           <!-- 主题列表容器 -->
-          <div class="thread-items p-4" @scroll="handleScroll">
+          <div class="thread-items p-4" ref="threadItemsRef" @scroll="handleScroll">
             <!-- 加载中（首次） -->
             <div v-if="loadingThreads && threads.length === 0" class="flex justify-center py-8">
               <el-icon class="is-loading"><span class="i-carbon-circle-notch text-2xl" /></el-icon>
@@ -123,12 +142,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, onUnmounted, nextTick, onActivated } from 'vue'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useForumStore } from '@/stores/forum'
 import { ngaApiRequest } from '@/api/nga'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AddForumDialog from './AddForumDialog.vue'
+
+// 定义组件名称，用于 keep-alive
+defineOptions({
+  name: 'Forum'
+})
 
 const router = useRouter()
 const forumStore = useForumStore()
@@ -140,6 +164,12 @@ const loadingMore = ref(false)
 const currentPage = ref(1)
 const hasMore = ref(true)
 const mainContainerRef = ref<HTMLElement | null>(null)
+const threadItemsRef = ref<HTMLElement | null>(null)
+
+// 滚动位置记录
+const scrollPosition = ref(0)
+const currentFid = ref<number>(0)
+const isReturningFromThread = ref(false) // 标记是否从帖子详情返回
 
 interface Thread {
   tid: number
@@ -151,13 +181,36 @@ interface Thread {
 
 const threads = ref<Thread[]>([])
 
-// 选择板块
+// 刷新主题列表
+const refreshThreads = async () => {
+  currentPage.value = 1
+  hasMore.value = true
+  threads.value = []
+  scrollPosition.value = 0
+  await loadThreads(true)
+
+  // 刷新后恢复滚动位置到顶部
+  await nextTick()
+  if (threadItemsRef.value) {
+    threadItemsRef.value.scrollTop = 0
+  }
+}
+
+// 选择板块（用户主动点击）
 const selectForum = async (forum: any) => {
+  isReturningFromThread.value = false // 用户主动切换板块，不是返回
   forumStore.setCurrentForum(forum)
   currentPage.value = 1
   hasMore.value = true
   threads.value = []
+  scrollPosition.value = 0
   await loadThreads(true)
+
+  // 重置滚动位置
+  await nextTick()
+  if (threadItemsRef.value) {
+    threadItemsRef.value.scrollTop = 0
+  }
 }
 
 // 加载主题列表
@@ -215,6 +268,9 @@ const handleScroll = (event: Event) => {
   const scrollTop = target.scrollTop
   const scrollHeight = target.scrollHeight
   const clientHeight = target.clientHeight
+
+  // 记录滚动位置
+  scrollPosition.value = scrollTop
 
   // 当滚动到距离底部 100px 时，加载更多
   if (scrollHeight - scrollTop - clientHeight < 100) {
@@ -291,12 +347,36 @@ const removeForum = async (fid: number) => {
 
 // 跳转到主题详情
 const goToThread = (tid: number) => {
+  // 记录当前滚动位置和板块信息
+  if (threadItemsRef.value) {
+    scrollPosition.value = threadItemsRef.value.scrollTop
+  }
+  if (forumStore.currentForum) {
+    currentFid.value = forumStore.currentForum.fid
+  }
+
+  // 标记从帖子列表进入详情
+  isReturningFromThread.value = true
+
   router.push({ name: 'Thread', params: { tid } })
 }
 
 // 返回首页
 const goHome = () => {
   router.push('/')
+}
+
+// 跳转到搜索页面（板块内搜索）
+const goToSearch = () => {
+  if (!forumStore.currentForum) return
+
+  router.push({
+    name: 'Search',
+    query: {
+      fid: forumStore.currentForum.fid.toString(),
+      forum: forumStore.currentForum.name,
+    },
+  })
 }
 
 // 板块添加后的回调
@@ -307,22 +387,73 @@ const onForumAdded = () => {
 // 组件挂载时加载配置并选择第一个板块
 onMounted(async () => {
   await forumStore.loadFromConfig()
-  if (!forumStore.isEmpty && forumStore.myForums.length > 0) {
-    // 如果有当前选中的板块，使用它；否则使用第一个
-    const forumToSelect = forumStore.currentForum || forumStore.myForums[0]
-    await selectForum(forumToSelect)
-  }
 
   // 添加滚动监听
-  const scrollContainer = mainContainerRef.value?.querySelector('.thread-items')
-  if (scrollContainer) {
-    scrollContainer.addEventListener('scroll', handleScroll)
+  if (threadItemsRef.value) {
+    threadItemsRef.value.addEventListener('scroll', handleScroll)
   }
+
+  // 加载板块和主题
+  if (!forumStore.isEmpty && forumStore.myForums.length > 0) {
+    // 确定要选中的板块
+    let forumToSelect = forumStore.currentForum || forumStore.myForums[0]
+
+    // 如果有记录的板块且不是从帖子详情返回，优先使用它
+    if (currentFid.value > 0 && !isReturningFromThread.value) {
+      const savedForum = forumStore.myForums.find(f => f.fid === currentFid.value)
+      if (savedForum) {
+        forumToSelect = savedForum
+      }
+    }
+
+    // 设置当前板块
+    if (forumToSelect) {
+      forumStore.setCurrentForum(forumToSelect)
+
+      // 恢复滚动位置
+      await nextTick()
+      if (threadItemsRef.value && scrollPosition.value > 0) {
+        threadItemsRef.value.scrollTop = scrollPosition.value
+      }
+
+      // 只有在没有主题时才加载
+      if (threads.value.length === 0) {
+        await loadThreads(true)
+      }
+    }
+
+    // 重置返回标记
+    isReturningFromThread.value = false
+  }
+})
+
+// 组件被激活时（从 keep-alive 缓存恢复）
+onActivated(async () => {
+  // 恢复滚动位置
+  await nextTick()
+  if (threadItemsRef.value && scrollPosition.value > 0) {
+    threadItemsRef.value.scrollTop = scrollPosition.value
+  }
+
+  // 重置返回标记
+  isReturningFromThread.value = false
+})
+
+// 路由离开前记录滚动位置
+onBeforeRouteLeave((_to, _from, next) => {
+  // 记录滚动位置
+  if (threadItemsRef.value) {
+    scrollPosition.value = threadItemsRef.value.scrollTop
+  }
+  if (forumStore.currentForum) {
+    currentFid.value = forumStore.currentForum.fid
+  }
+  next()
 })
 
 // 组件卸载时移除滚动监听
 onUnmounted(() => {
-  const scrollContainer = mainContainerRef.value?.querySelector('.thread-items')
+  const scrollContainer = threadItemsRef.value
   if (scrollContainer) {
     scrollContainer.removeEventListener('scroll', handleScroll)
   }
@@ -356,29 +487,32 @@ onUnmounted(() => {
   border-bottom: 1px solid #e5e7eb;
 }
 
-.home-icon-btn {
-  width: 40px;
-  height: 40px;
+.icon-btn {
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: white;
   border: 1px solid #e5e7eb;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.home-icon-btn:hover {
+.icon-btn:hover {
   background: #f9fafb;
   border-color: #d1d5db;
 }
 
-.home-icon-btn:active {
+.icon-btn:active {
   background: #f3f4f6;
 }
 
-.home-icon {
-  width: 20px;
-  height: 20px;
-  color: #475569;
+.btn-icon {
+  width: 18px;
+  height: 18px;
+  stroke: #475569;
 }
 
 .thread-item:hover {

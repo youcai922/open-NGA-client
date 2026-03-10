@@ -14,9 +14,9 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '上': { file: 'ac2' },
   '中枪': { file: 'ac3' },
   '狂': { file: 'ac4' },
-  '黑': { file: 'ac5' },
+  '冷': { file: 'ac5' },
   '凌乱': { file: 'ac6' },
-  '惊': { file: 'ac7' },
+  // '惊': { file: 'ac7' },
   '吓': { file: 'ac8' },
   '吻': { file: 'ac9' },
   '呆': { file: 'ac10' },
@@ -30,21 +30,22 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '喷': { file: 'ac18' },
   '嘲笑': { file: 'ac19' },
   '嘲笑1': { file: 'ac20' },
-  '疑': { file: 'ac21' },
+  '囧': { file: 'ac21' },
   '衰': { file: 'ac22' },
-  '呲牙': { file: 'ac24' },
+  '心': { file: 'ac23' },
+  '忧伤': { file: 'ac24' },
   '怒': { file: 'ac25' },
   '怕': { file: 'ac26' },
   '嘘': { file: 'ac27' },
   '愁': { file: 'ac28' },
   '抓狂': { file: 'ac29' },
   '抠鼻': { file: 'ac30' },
-  '鄙视': { file: 'ac31' },
+  '擦汗': { file: 'ac31' },
   '无语': { file: 'ac32' },
   '晕': { file: 'ac33' },
   'OK': { file: 'ac34' },
   '瞎': { file: 'ac35' },
-  '咖啡': { file: 'ac36' },
+  '羞': { file: 'ac36' },
   '羡慕': { file: 'ac37' },
   '花痴': { file: 'ac38' },
   '茶': { file: 'ac39' },
@@ -61,11 +62,15 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '偷笑': { file: 'a2_03' },
   '诶嘿': { file: 'a2_05' },
   '那个…': { file: 'a2_08' },
+  '哦嗬嗬嗬': { file: 'a2_09' },
+  '舔': { file: 'a2_10' },
   '有何贵干': { file: 'a2_11' },
   '病娇': { file: 'a2_12' },
   'lucky': { file: 'a2_13' },
+  '鬼脸': { file: 'a2_14' },
   '大哭': { file: 'a2_15' },
   '哭': { file: 'a2_17' },
+  '惊': { file: 'a2_19' },
   '你看看你': { file: 'a2_25' },
   'yes': { file: 'a2_26' },
   'doge': { file: 'a2_27' },
@@ -74,6 +79,8 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '不活了': { file: 'a2_33' },
   '不明觉厉': { file: 'a2_36' },
   'jojo立3': { file: 'a2_39' },
+  'jojo立5': { file: 'a2_40' },
+  '威吓': { file: 'a2_42' },
   '你已经死了': { file: 'a2_45' },
   '认真': { file: 'a2_48' },
   '干杯': { file: 'a2_54' },
@@ -85,6 +92,8 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
 
   // pst 类别表情
   '亲': { file: 'pt01' },
+  '偷笑3': { file: 'pt04' },
+  '呆3': { file: 'pt11' },
 }
 
 // NGA 表情 CDN 基础 URL
@@ -277,7 +286,7 @@ export function parseNgaQuotes(content: string): string {
     // 清理多余的换行
     bodyContent = bodyContent.trim()
 
-    return `<div class="nga-quote-block" style="background: #f5f5f5; border-left: 3px solid #ddd; padding: 10px 12px; margin: 8px 0; border-radius: 0 4px 4px 0;">
+    return `<div class="nga-quote-block" style="background: #f5f5f5; border-left: 3px solid #ddd; padding: 8px 10px; margin: 4px 0; border-radius: 0 4px 4px 0;">
       ${header}
       <div class="nga-quote-content" style="font-size: 0.95em; line-height: 1.6; color: #333;">${bodyContent}</div>
     </div>`
@@ -299,7 +308,7 @@ export function parseInlineQuotes(content: string): string {
 
   parsed = parsed.replace(normalUserPattern, (_match: string, pidStr: string, _uid: string, username: string, time: string) => {
     const pid = pidStr.split(',')[0]
-    return `<div class="nga-inline-quote" style="background: #f0f7ff; border-left: 3px solid #2196f3; padding: 8px 12px; margin: 8px 0; border-radius: 0 4px 4px 0;">
+    return `<div class="nga-inline-quote" style="background: #f0f7ff; border-left: 3px solid #2196f3; padding: 6px 10px; margin: 4px 0; border-radius: 0 4px 4px 0;">
       <span class="nga-inline-quote-link" data-pid="${pid}" style="color: #1976d2; font-size: 0.85em; cursor: pointer; text-decoration: underline; text-decoration-style: dotted;">↗ 回复</span>
       <span style="font-size: 0.85em; color: #666;">回复 </span>
       <span class="nga-quote-user" style="color: #1976d2; font-size: 0.9em;">${username}</span>
@@ -308,12 +317,68 @@ export function parseInlineQuotes(content: string): string {
   })
 
   // 匹配格式2：匿名用户
-  // [b]Reply to [pid=...]Reply[/pid] Post by [uid]#anony_xxx[/uid](5楼) (时间)[/b]
-  const anonUserPattern = /\[b\]Reply to\s+\[pid=([\d,]+)\]Reply\[\/pid\]\s+Post by\s+\[uid\]#anony_[a-f0-9]+\[\/uid\]\((\d+)楼\)\s*\((\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})\)\[\/b\]/gi
+  // [b]Reply to [pid=...]Reply[/pid] Post by [uid]#anony_xxx[/uid][color=gray](X楼)[/color] (时间)[/b]
+  // 注意：楼层号可能被 [color=xxx] 标签包裹
+  const anonUserPattern = /\[b\]Reply to\s+\[pid=([\d,]+)\]Reply\[\/pid\]\s+Post by\s+\[uid\]#anony_[a-f0-9]+\[\/uid\](?:\[color=[^\]]+\])?\((\d+)楼\)(?:\[\/color\])?\s*\((\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})\)\[\/b\]/gi
 
   parsed = parsed.replace(anonUserPattern, (_match: string, pidStr: string, floor: string, time: string) => {
     const pid = pidStr.split(',')[0]
-    return `<div class="nga-inline-quote" style="background: #f0f7ff; border-left: 3px solid #2196f3; padding: 8px 12px; margin: 8px 0; border-radius: 0 4px 4px 0;">
+    return `<div class="nga-inline-quote" style="background: #f0f7ff; border-left: 3px solid #2196f3; padding: 6px 10px; margin: 4px 0; border-radius: 0 4px 4px 0;">
+      <span class="nga-inline-quote-link" data-pid="${pid}" style="color: #1976d2; font-size: 0.85em; cursor: pointer; text-decoration: underline; text-decoration-style: dotted;">↗ 回复</span>
+      <span style="font-size: 0.85em; color: #666;">回复 </span>
+      <span class="nga-quote-user" style="color: #1976d2; font-size: 0.9em;">匿名用户</span>
+      <span class="nga-quote-floor" style="color: #999; font-size: 0.85em;"> (${floor}楼)</span>
+      <span class="nga-quote-time" style="color: #999; font-size: 0.85em;"> (${time})</span>
+    </div>`
+  })
+
+  // 如果上面的匹配失败，尝试不带 [b] 标签的版本
+  const anonUserPatternNoB = /Reply to\s+\[pid=([\d,]+)\]Reply\[\/pid\]\s+Post by\s+\[uid\]#anony_[a-f0-9]+\[\/uid\](?:\[color=[^\]]+\])?\((\d+)楼\)(?:\[\/color\])?\s*\((\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})\)/gi
+
+  parsed = parsed.replace(anonUserPatternNoB, (_match: string, pidStr: string, floor: string, time: string) => {
+    const pid = pidStr.split(',')[0]
+    return `<div class="nga-inline-quote" style="background: #f0f7ff; border-left: 3px solid #2196f3; padding: 6px 10px; margin: 4px 0; border-radius: 0 4px 4px 0;">
+      <span class="nga-inline-quote-link" data-pid="${pid}" style="color: #1976d2; font-size: 0.85em; cursor: pointer; text-decoration: underline; text-decoration-style: dotted;">↗ 回复</span>
+      <span style="font-size: 0.85em; color: #666;">回复 </span>
+      <span class="nga-quote-user" style="color: #1976d2; font-size: 0.9em;">匿名用户</span>
+      <span class="nga-quote-floor" style="color: #999; font-size: 0.85em;"> (${floor}楼)</span>
+      <span class="nga-quote-time" style="color: #999; font-size: 0.85em;"> (${time})</span>
+    </div>`
+  })
+
+  // 匹配格式3：主题引用（没有 [b] 标签）
+  // Reply to [tid=46301512]Topic[/tid] Post by [uid=67113223]用户名[/uid] (2026-03-03 20:28)
+  const topicQuotePattern = /Reply to\s+\[tid=(\d+)\]Topic\[\/tid\]\s+Post by\s+\[uid=(\d+)\](.+?)\[\/uid\]\s*\((\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})\)/gi
+
+  parsed = parsed.replace(topicQuotePattern, (_match: string, _tid: string, _uid: string, username: string, time: string) => {
+    return `<div class="nga-inline-quote" style="background: #fff7ed; border-left: 3px solid #f97316; padding: 6px 10px; margin: 4px 0; border-radius: 0 4px 4px 0;">
+      <span style="font-size: 0.85em; color: #666;">引用主题 </span>
+      <span class="nga-quote-user" style="color: #ea580c; font-size: 0.9em;">${username}</span>
+      <span class="nga-quote-time" style="color: #999; font-size: 0.85em;"> (${time})</span>
+    </div>`
+  })
+
+  // 匹配格式4：回复引用（没有 [b] 标签）
+  // Reply to [pid=858176841,46205850,1]Reply[/pid] Post by [uid=65197075]用户名[/uid] (2026-02-14 16:23)
+  const replyQuotePattern = /Reply to\s+\[pid=([\d,]+)\]Reply\[\/pid\]\s+Post by\s+\[uid=(\d+)\](.+?)\[\/uid\]\s*\((\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})\)/gi
+
+  parsed = parsed.replace(replyQuotePattern, (_match: string, pidStr: string, _uid: string, username: string, time: string) => {
+    const pid = pidStr.split(',')[0]
+    return `<div class="nga-inline-quote" style="background: #f0f7ff; border-left: 3px solid #2196f3; padding: 6px 10px; margin: 4px 0; border-radius: 0 4px 4px 0;">
+      <span class="nga-inline-quote-link" data-pid="${pid}" style="color: #1976d2; font-size: 0.85em; cursor: pointer; text-decoration: underline; text-decoration-style: dotted;">↗ 回复</span>
+      <span style="font-size: 0.85em; color: #666;">回复 </span>
+      <span class="nga-quote-user" style="color: #1976d2; font-size: 0.9em;">${username}</span>
+      <span class="nga-quote-time" style="color: #999; font-size: 0.85em;"> (${time})</span>
+    </div>`
+  })
+
+  // 匹配格式5：匿名用户回复引用（没有 [b] 标签）
+  // Reply to [pid=849766411,45707239,1]Reply[/pid] Post by [uid]#anony_725eba0a098fb56a56ae2e6a35ae3ac8[/uid](4楼) (2025-12-02 18:46)
+  const anonReplyQuotePattern = /Reply to\s+\[pid=([\d,]+)\]Reply\[\/pid\]\s+Post by\s+\[uid\]#anony_[a-f0-9]+\[\/uid\]\((\d+)楼\)\s*\((\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})\)/gi
+
+  parsed = parsed.replace(anonReplyQuotePattern, (_match: string, pidStr: string, floor: string, time: string) => {
+    const pid = pidStr.split(',')[0]
+    return `<div class="nga-inline-quote" style="background: #f0f7ff; border-left: 3px solid #2196f3; padding: 6px 10px; margin: 4px 0; border-radius: 0 4px 4px 0;">
       <span class="nga-inline-quote-link" data-pid="${pid}" style="color: #1976d2; font-size: 0.85em; cursor: pointer; text-decoration: underline; text-decoration-style: dotted;">↗ 回复</span>
       <span style="font-size: 0.85em; color: #666;">回复 </span>
       <span class="nga-quote-user" style="color: #1976d2; font-size: 0.9em;">匿名用户</span>
@@ -420,6 +485,9 @@ export function parseBBCode(content: string): string {
 
   // 处理 [s]...[/s] 删除线
   parsed = parsed.replace(/\[s\]([\s\S]*?)\[\/s\]/gi, '<s>$1</s>')
+
+  // 处理 [del]...[/del] 删除线
+  parsed = parsed.replace(/\[del\]([\s\S]*?)\[\/del\]/gi, '<s>$1</s>')
 
   return parsed
 }
