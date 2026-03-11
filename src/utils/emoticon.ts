@@ -91,6 +91,7 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
 
   // ng 类别表情
   '呲牙笑': { file: 'ng_1' },
+  '奸笑': { file: 'ng_2' },
   '扇笑': { file: 'ng_8' },
   '吃瓜': { file: 'ng_17' },
 
