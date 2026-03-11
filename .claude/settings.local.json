@@ -31,7 +31,10 @@
       "Bash(grep:*)",
       "Bash(mkdir:*)",
       "Bash(identify:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(cd \"F:\\\\yucan\\\\github\\\\open-NGA-client\" && set NODE_TLS_REJECT_UNAUTHORIZED=0 && set RUST_LOG=debug && pnpm tauri build --bundles nsis)"
     ]
   }
 }

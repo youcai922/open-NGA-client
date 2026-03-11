@@ -31,7 +31,7 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '嘲笑': { file: 'ac19' },
   '嘲笑1': { file: 'ac20' },
   '囧': { file: 'ac21' },
-  '衰': { file: 'ac22' },
+  '委屈': { file: 'ac22' },
   '心': { file: 'ac23' },
   '忧伤': { file: 'ac24' },
   '怒': { file: 'ac25' },
@@ -71,11 +71,14 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '大哭': { file: 'a2_15' },
   '哭': { file: 'a2_17' },
   '惊': { file: 'a2_19' },
+  'poi': { file: 'a2_20' },
   '你看看你': { file: 'a2_25' },
   'yes': { file: 'a2_26' },
   'doge': { file: 'a2_27' },
   '自戳双目': { file: 'a2_28' },
+  '偷吃': { file: 'a2_30' },
   '冷笑': { file: 'a2_31' },
+  '壁咚': { file: 'a2_32' },
   '不活了': { file: 'a2_33' },
   '不明觉厉': { file: 'a2_36' },
   'jojo立3': { file: 'a2_39' },
@@ -87,8 +90,12 @@ const NGA_EMOTICON_MAP: Record<string, { file: string }> = {
   '干杯2': { file: 'a2_55' },
 
   // ng 类别表情
+  '呲牙笑': { file: 'ng_1' },
   '扇笑': { file: 'ng_8' },
   '吃瓜': { file: 'ng_17' },
+
+  // pg 类别表情
+  '满分': { file: 'pg03' },
 
   // pst 类别表情
   '亲': { file: 'pt01' },

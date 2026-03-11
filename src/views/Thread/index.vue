@@ -42,7 +42,7 @@
       </div>
     </div>
 
-    <!-- 内容区域 -->
+    <!-- 内容区域（可滚动） -->
     <div class="thread-content flex-1 overflow-auto" ref="contentRef">
       <!-- 加载中（首次） -->
       <div v-if="loading && !postData" class="flex justify-center py-12">
@@ -115,7 +115,7 @@
             </div>
 
             <!-- 没有更多了 -->
-            <div v-else-if="!hasMore" class="text-center py-4 text-gray-400 text-sm">
+            <div v-if="!loadingMore && !hasMore" class="text-center py-3 text-gray-400 text-xs">
               没有更多回复了
             </div>
           </div>
@@ -130,6 +130,38 @@
         <span class="i-carbon-warning-alt text-5xl text-gray-300 mb-4" />
         <p class="text-gray-500 mb-2">加载失败</p>
         <el-button size="small" @click="loadPostDetail">重试</el-button>
+      </div>
+    </div>
+
+    <!-- 分页组件 - 固定在底部 -->
+    <div v-if="totalPages > 1 && postData" class="thread-footer flex-shrink-0 bg-white border-t border-gray-200">
+      <div class="pagination-wrapper px-5 py-3">
+        <div class="flex items-center justify-end gap-3">
+          <span class="text-xs text-gray-500">{{ currentPage }}/{{ totalPages }} 页</span>
+          <el-pagination
+            :current-page="currentPage"
+            :page-size="1"
+            :total="totalPages"
+            :small="true"
+            layout="prev, pager, next"
+            @current-change="jumpToPage"
+            :background="true"
+          />
+          <!-- 快速跳转 -->
+          <div class="flex items-center gap-1">
+            <span class="text-xs text-gray-500">跳转</span>
+            <el-input-number
+              :model-value="jumpPageInput"
+              @change="handleJumpInput"
+              :min="1"
+              :max="totalPages"
+              :controls="false"
+              size="small"
+              class="jump-input"
+            />
+            <el-button size="small" @click="handleJumpGo">GO</el-button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -149,6 +181,8 @@ const router = useRouter()
 const loading = ref(false)
 const loadingMore = ref(false)
 const currentPage = ref(1)
+const totalPages = ref(1) // 总页数
+const jumpPageInput = ref<number | undefined>(undefined) // 跳转页码输入
 const hasMore = ref(true)
 const currentFloor = ref(1) // 当前楼层数
 
@@ -203,7 +237,7 @@ const formatTime = (timestamp: number) => {
 }
 
 // 加载帖子详情
-const loadPostDetail = async (isFirstPage: boolean = true) => {
+const loadPostDetail = async (isFirstPage: boolean = true, isJump: boolean = false) => {
   if (!tid.value) return
 
   // 如果是加载更多，使用 loadingMore，否则使用 loading
@@ -220,7 +254,7 @@ const loadPostDetail = async (isFirstPage: boolean = true) => {
     })
 
     if (response.success && response.body) {
-      await parsePostContent(response.body, isFirstPage)
+      await parsePostContent(response.body, isFirstPage, isJump)
     } else {
       ElMessage.error('获取帖子详情失败')
     }
@@ -234,7 +268,7 @@ const loadPostDetail = async (isFirstPage: boolean = true) => {
 }
 
 // 解析帖子内容
-const parsePostContent = async (body: string, isFirstPage: boolean) => {
+const parsePostContent = async (body: string, isFirstPage: boolean, isJump: boolean = false) => {
   try {
     // 先尝试从HTML中提取用户名映射
     // NGA论坛通常在JavaScript中定义了用户信息
@@ -420,8 +454,11 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
         let replyTime = serverNow
 
         // 智能查找对应的作者链接
-        // 不要依赖索引，直接从 replyElement 的 DOM 结构中查找
-        const actualIndex = isFirstPage ? i : i
+        // 计算实际的索引：第一页从1开始（跳过主帖），其他页面需要加上偏移量
+        // 每页大约20条回复（主帖占1个位置）
+        const repliesPerFirstPage = 20
+        const pageIndex = currentPage.value - 1 // 当前页索引（0-based）
+        const actualIndex = isFirstPage ? i : (pageIndex * repliesPerFirstPage) + i + 1
         let userLink: HTMLElement | null = null
 
         // 方法1：从 replyElement 中提取 pid，查找对应的 posterinfo
@@ -457,27 +494,38 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
         replyAuthor = userInfo.username
 
         // 从文档中查找对应的时间元素
-        // 注意：第二页时，元素的ID可能不是从0开始
-        // 需要找到对应的时间元素，它可能在 replyElement 内部或附近
-        const postDateId = `postdate${actualIndex}`
-        const postDateElement = doc.getElementById(postDateId)
+        // 优先方法：在 replyElement 的父级/兄弟元素中查找对应的时间元素
+        let postDateElement: HTMLElement | null = null
+
+        // 方法1：复用之前查找的 posterinfo，从中提取时间
+        // parentElement 和 replyPid 已经在上面声明过了
+        if (parentElement) {
+          // 查找同级中的 posterinfo
+          const siblingPosterInfo = Array.from(parentElement.children).find(el =>
+            el.classList.contains('posterinfo') || el.id === `posterinfo${replyPid}`
+          )
+          if (siblingPosterInfo) {
+            postDateElement = siblingPosterInfo.querySelector('[id^="postdate"]') as any
+          }
+        }
+
+        // 方法2：如果方法1找不到，使用索引方式（作为备用）
+        if (!postDateElement) {
+          const postDateId = `postdate${actualIndex}`
+          postDateElement = doc.getElementById(postDateId)
+        }
+
+        // 方法3：最后尝试在 replyElement 内部查找
+        if (!postDateElement) {
+          postDateElement = replyElement.querySelector('[id^="postdate"]')
+        }
+
         if (postDateElement) {
           const dateText = postDateElement.textContent?.trim() || ''
           const dateMatch = dateText.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/)
           if (dateMatch) {
             const [, year, month, day, hour, minute] = dateMatch
             replyTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).getTime() / 1000
-          }
-        } else {
-          // 如果找不到对应的时间元素，尝试在 replyElement 内部查找
-          const innerDateElement = replyElement.querySelector('[id^="postdate"]')
-          if (innerDateElement) {
-            const dateText = innerDateElement.textContent?.trim() || ''
-            const dateMatch = dateText.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/)
-            if (dateMatch) {
-              const [, year, month, day, hour, minute] = dateMatch
-              replyTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).getTime() / 1000
-            }
           }
         }
 
@@ -506,7 +554,20 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
       const convertedContents = await Promise.all(contentPromises)
 
       // 计算起始楼层号
-      const startFloor = isFirstPage ? 1 : replies.value.length + 1
+      // NGA 每页通常 20 条回复（不含主帖）
+      const repliesPerPage = 20
+      let startFloor: number
+
+      if (isFirstPage) {
+        // 第一页：从 1 开始
+        startFloor = 1
+      } else if (isJump) {
+        // 页面跳转：根据页码计算起始楼层
+        startFloor = (currentPage.value - 1) * repliesPerPage + 1
+      } else {
+        // 滚动加载更多：接续当前楼层
+        startFloor = replies.value.length + 1
+      }
 
       // 构建回复列表
       for (let i = 0; i < rawReplies.length; i++) {
@@ -609,62 +670,87 @@ const parsePostContent = async (body: string, isFirstPage: boolean) => {
 
 // 解析是否还有更多
 const parseHasMore = (doc: Document, isFirstPage: boolean, newReplyCount: number) => {
-  // 查找所有分页链接
-  const pageElements = doc.querySelectorAll('.page-link, .pages a, a[href*="page="]')
   let maxPage = 1
-  const seenPages = new Set<number>()
 
-  for (const pageEl of pageElements) {
-    const href = pageEl.getAttribute('href') || ''
-    const pageMatch = href.match(/page=(\d+)/)
-    if (pageMatch) {
-      const page = parseInt(pageMatch[1])
-      if (page > 0 && page < 1000) { // 合理的页码范围
-        seenPages.add(page)
-        if (page > maxPage) {
-          maxPage = page
+  // 方法1：优先从 NGA 的 __PAGE JavaScript 变量中提取总页数（最准确）
+  const bodyHtml = doc.body?.innerHTML || ''
+  const pageVarMatch = bodyHtml.match(/__PAGE\s*=\s*\{[^}]*\}/)
+  if (pageVarMatch) {
+    // __PAGE 格式通常是: {0:'/read.php?tid=xxx',1:总页数}
+    const totalPagesMatch = pageVarMatch[0].match(/1\s*:\s*(\d+)/)
+    if (totalPagesMatch) {
+      const totalPages = parseInt(totalPagesMatch[1])
+      if (totalPages > 0 && totalPages < 1000) {
+        maxPage = totalPages
+      }
+    }
+  }
+
+  // 方法2：查找所有带有页码的链接
+  if (maxPage === 1) {
+    const allLinks = Array.from(doc.querySelectorAll('a'))
+    const pageNumbers: number[] = []
+
+    for (const link of allLinks) {
+      const href = link.getAttribute('href') || ''
+      const text = link.textContent?.trim() || ''
+
+      // 从链接中提取 page 参数
+      const pageMatch = href.match(/page=(\d+)/)
+      if (pageMatch) {
+        const page = parseInt(pageMatch[1])
+        if (page > 0 && page < 1000) {
+          pageNumbers.push(page)
+        }
+      }
+
+      // 从链接文本中提取纯数字页码（如 <a>5</a>）
+      if (/^\d+$/.test(text)) {
+        const page = parseInt(text)
+        if (page > 0 && page < 1000) {
+          pageNumbers.push(page)
         }
       }
     }
 
-    // 也尝试从文本中提取页码
-    const text = pageEl.textContent || ''
-    const textMatch = text.match(/^(\d+)$/)
-    if (textMatch) {
-      const page = parseInt(textMatch[1])
-      if (page > 0 && page < 1000) {
-        seenPages.add(page)
-        if (page > maxPage) {
-          maxPage = page
-        }
+    if (pageNumbers.length > 0) {
+      const uniquePages = [...new Set(pageNumbers)]
+      const foundMaxPage = Math.max(...uniquePages)
+      if (foundMaxPage > maxPage) {
+        maxPage = foundMaxPage
       }
     }
+  }
+
+  // 方法3：查找"末页"相关的文本
+  if (maxPage === 1) {
+    const bodyText = doc.body?.textContent || ''
+    const lastPagePattern = bodyText.match(/末页.*?(\d+)/)
+    if (lastPagePattern) {
+      const page = parseInt(lastPagePattern[1])
+      if (page > maxPage && page < 1000) {
+        maxPage = page
+      }
+    }
+  }
+
+  // 更新总页数
+  if (maxPage > totalPages.value) {
+    totalPages.value = maxPage
   }
 
   // 判断是否还有更多
-  // 方法1: 如果当前页大于最大页码，说明已经是最后一页了
-  if (currentPage.value >= maxPage) {
+  if (currentPage.value >= totalPages.value) {
     hasMore.value = false
     return
   }
 
-  // 方法2: 如果新加载的内容数量明显少于正常值（NGA通常每页20条左右），可能是最后一页
-  if (!isFirstPage && newReplyCount < 15) {
+  if (!isFirstPage && newReplyCount < 10) {
     hasMore.value = false
     return
   }
 
-  // 方法3: 检查是否有下一页链接
-  const currentPageInSet = seenPages.has(currentPage.value)
-  const hasNextPage = seenPages.has(currentPage.value + 1)
-
-  if (hasNextPage) {
-    hasMore.value = true
-  } else if (currentPageInSet && currentPage.value < maxPage) {
-    hasMore.value = true
-  } else {
-    hasMore.value = false
-  }
+  hasMore.value = true
 }
 
 // 加载更多
@@ -706,10 +792,70 @@ const goToUserThreads = (authorId: number, username: string) => {
 const refreshData = () => {
   currentPage.value = 1
   hasMore.value = true
+  totalPages.value = 1
   replies.value = []
   loadedPids.value.clear()
   currentFloor.value = 1
   loadPostDetail(true)
+}
+
+// 跳转到指定页
+const jumpToPage = async (page: number) => {
+  if (page < 1 || page > totalPages.value) {
+    ElMessage.warning(`页码超出范围，当前共 ${totalPages.value} 页`)
+    return
+  }
+  if (page === currentPage.value) {
+    return
+  }
+  if (loading.value || loadingMore.value) {
+    ElMessage.warning('正在加载中，请稍候')
+    return
+  }
+
+  // 保存主帖信息（如果已有）
+  const savedPostData = postData.value
+
+  // 清空当前回复列表，重新加载
+  currentPage.value = page
+  hasMore.value = page < totalPages.value
+  replies.value = []
+  loadedPids.value.clear()
+  currentFloor.value = 1
+
+  // 加载目标页数据（isJump=true 表示这是页面跳转，需要重新计算楼层）
+  await loadPostDetail(false, true)
+
+  // 如果跳转到非第一页且没有主帖数据，恢复之前的主帖信息
+  if (page > 1 && !postData.value && savedPostData) {
+    postData.value = savedPostData
+  }
+
+  // 跳转后滚动到顶部
+  nextTick(() => {
+    if (contentRef.value) {
+      contentRef.value.scrollTop = 0
+    }
+  })
+}
+
+// 处理跳转输入框变化
+const handleJumpInput = (value: number | undefined) => {
+  jumpPageInput.value = value
+}
+
+// 处理跳转按钮点击
+const handleJumpGo = () => {
+  if (jumpPageInput.value === undefined || jumpPageInput.value < 1) {
+    ElMessage.warning('请输入有效的页码')
+    return
+  }
+  if (jumpPageInput.value > totalPages.value) {
+    ElMessage.warning(`页码超出范围，当前共 ${totalPages.value} 页`)
+    return
+  }
+  jumpToPage(jumpPageInput.value)
+  jumpPageInput.value = undefined
 }
 
 // 复制帖子链接
@@ -1024,5 +1170,74 @@ onUnmounted(() => {
 .reply-content :deep(s) {
   text-decoration: line-through;
   color: #9ca3af;
+}
+
+/* 分页组件样式 */
+.thread-footer {
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.pagination-wrapper {
+  background: white;
+}
+
+.pagination-wrapper :deep(.el-pagination) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-wrapper :deep(.el-pagination.is-background .el-pager li) {
+  border-radius: 4px;
+  min-width: 28px;
+  height: 28px;
+  line-height: 28px;
+  font-size: 12px;
+}
+
+.pagination-wrapper :deep(.el-pagination.is-background .btn-prev),
+.pagination-wrapper :deep(.el-pagination.is-background .btn-next) {
+  border-radius: 4px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+}
+
+.pagination-wrapper :deep(.el-pagination.is-background .el-pager li:not(.disabled).is-active) {
+  background-color: #3b82f6;
+}
+
+.pagination-wrapper :deep(.el-pagination.is-background .el-pager li:hover) {
+  background-color: #e5e7eb;
+}
+
+.pagination-wrapper :deep(.el-pagination.is-background .btn-prev:hover),
+.pagination-wrapper :deep(.el-pagination.is-background .btn-next:hover) {
+  background-color: #e5e7eb;
+}
+
+.pagination-wrapper :deep(.el-pagination__jump) {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.pagination-wrapper :deep(.el-pagination__jump .el-input__wrapper) {
+  width: 44px;
+  height: 28px;
+}
+
+/* 跳转输入框样式 */
+.pagination-wrapper .jump-input {
+  width: 50px;
+}
+
+.pagination-wrapper .jump-input :deep(.el-input__wrapper) {
+  height: 24px;
+  padding: 0 4px;
+}
+
+.pagination-wrapper .jump-input :deep(.el-input__inner) {
+  text-align: center;
+  font-size: 12px;
 }
 </style>
